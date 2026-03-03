@@ -65,8 +65,6 @@ export default function Calendar() {
     if (error) {
       console.error("Error fetching events:", error);
     } else if (data) {
-      // Map Supabase column names to our interface if they differ
-      // For now we assume they match or we adjust
       setEvents(data as CalendarEvent[]);
     }
   }
@@ -74,6 +72,54 @@ export default function Calendar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
+  };
+
+  const handleExportICS = () => {
+    if (events.length === 0) return;
+
+    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Company Calendar//EN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n";
+
+    events.forEach(event => {
+      const start = event.startDate.replace(/-/g, "");
+      const end = (event.endDate || event.startDate).replace(/-/g, "");
+      
+      // If no time, it's an all-day event. End date in ICS for all-day is exclusive, so we add 1 day.
+      let dtStart = `VALUE=DATE:${start}`;
+      let dtEnd = `VALUE=DATE:${end}`;
+      
+      if (event.time) {
+        const timeStr = event.time.replace(":", "") + "00";
+        dtStart = `${start}T${timeStr}`;
+        // For simplicity, we make it a 1 hour event if no end time exists
+        dtEnd = `${end}T${String(Number(timeStr) + 10000).padStart(6, "0")}`;
+      } else {
+        // Add 1 day to end date for all-day exclusivity
+        const endDateObj = new Date(event.endDate || event.startDate);
+        endDateObj.setDate(endDateObj.getDate() + 1);
+        const endYear = endDateObj.getFullYear();
+        const endMonth = String(endDateObj.getMonth() + 1).padStart(2, "0");
+        const endDay = String(endDateObj.getDate()).padStart(2, "0");
+        dtEnd = `VALUE=DATE:${endYear}${endMonth}${endDay}`;
+      }
+
+      icsContent += "BEGIN:VEVENT\n";
+      icsContent += `UID:${event.id}@companycalendar.com\n`;
+      icsContent += `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z\n`;
+      icsContent += `DTSTART;${dtStart}\n`;
+      icsContent += `DTEND;${dtEnd}\n`;
+      icsContent += `SUMMARY:${event.title}\n`;
+      icsContent += "END:VEVENT\n";
+    });
+
+    icsContent += "END:VCALENDAR";
+
+    const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = window.URL.createObjectURL(blob);
+    link.setAttribute("download", "company-calendar.ics");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const year = currentDate.getFullYear();
@@ -107,7 +153,7 @@ export default function Calendar() {
     if (error) {
       alert("Error adding event: " + error.message);
     } else {
-      await fetchEvents(); // Refresh from server
+      await fetchEvents();
       setShowModal(false);
       setNewEvent({ title: "", startDate: "", endDate: "", time: "", color: COLORS[0] });
     }
@@ -134,7 +180,6 @@ export default function Calendar() {
 
   if (loading) return <div className={styles.loading}>Loading Calendar...</div>;
 
-  // Calendar days grid
   const days = [];
   for (let i = 0; i < firstDayOfMonth; i++) {
     days.push(<div key={`empty-${i}`} className={styles.dayEmpty}></div>);
@@ -185,6 +230,9 @@ export default function Calendar() {
           <span>Logged in as <strong>{user?.email}</strong></span>
           <button onClick={handleLogout} className={styles.btnLogout}>Sign Out</button>
         </div>
+        <button onClick={handleExportICS} className={styles.btnSecondary} style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
+          Sync to Apple Calendar
+        </button>
       </div>
       
       <div className={styles.controls}>
