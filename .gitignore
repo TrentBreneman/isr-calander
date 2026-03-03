@@ -41,3 +41,5 @@ next-env.d.ts
 .vscode
 *.sublime-project
 *.sublime-workspace
+output/
+out.Zip
