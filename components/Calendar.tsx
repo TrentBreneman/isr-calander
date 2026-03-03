@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import styles from "./Calendar.module.css";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 
 interface CalendarEvent {
   id: string;
@@ -10,6 +12,7 @@ interface CalendarEvent {
   endDate?: string;   // ISO string YYYY-MM-DD
   time?: string;      // HH:mm
   color: string;
+  user_id?: string;
 }
 
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -24,6 +27,8 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [newEvent, setNewEvent] = useState({ 
     title: "", 
     startDate: "", 
@@ -31,30 +36,45 @@ export default function Calendar() {
     time: "", 
     color: COLORS[0] 
   });
+  
+  const router = useRouter();
+  const supabase = createClient();
 
-  // Load events from localStorage
+  // Check auth and load events
   useEffect(() => {
-    const saved = localStorage.getItem("company-events");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Migration: handle old format where it was just 'date'
-        const migrated = parsed.map((e: any) => ({
-          ...e,
-          startDate: e.startDate || e.date,
-          endDate: e.endDate || e.date
-        }));
-        setEvents(migrated);
-      } catch (e) {
-        console.error("Failed to load events", e);
+    async function init() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      
+      if (!user) {
+        router.push("/login");
+        return;
       }
-    }
-  }, []);
 
-  // Save events to localStorage
-  useEffect(() => {
-    localStorage.setItem("company-events", JSON.stringify(events));
-  }, [events]);
+      await fetchEvents();
+      setLoading(false);
+    }
+    init();
+  }, [router]);
+
+  async function fetchEvents() {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*');
+    
+    if (error) {
+      console.error("Error fetching events:", error);
+    } else if (data) {
+      // Map Supabase column names to our interface if they differ
+      // For now we assume they match or we adjust
+      setEvents(data as CalendarEvent[]);
+    }
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -66,42 +86,63 @@ export default function Calendar() {
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
   const today = () => setCurrentDate(new Date());
 
-  const handleAddEvent = (e: React.FormEvent) => {
+  const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEvent.title || !newEvent.startDate) return;
+    if (!newEvent.title || !newEvent.startDate || !user) return;
 
-    const event: CalendarEvent = {
-      id: Math.random().toString(36).substring(2, 9),
+    const eventData = {
       title: newEvent.title,
-      startDate: newEvent.startDate,
-      endDate: newEvent.endDate || newEvent.startDate,
+      start_date: newEvent.startDate,
+      end_date: newEvent.endDate || newEvent.startDate,
       time: newEvent.time,
       color: newEvent.color,
+      user_id: user.id
     };
 
-    setEvents([...events, event]);
-    setShowModal(false);
-    setNewEvent({ title: "", startDate: "", endDate: "", time: "", color: COLORS[0] });
+    const { data, error } = await supabase
+      .from('events')
+      .insert([eventData])
+      .select();
+
+    if (error) {
+      alert("Error adding event: " + error.message);
+    } else {
+      await fetchEvents(); // Refresh from server
+      setShowModal(false);
+      setNewEvent({ title: "", startDate: "", endDate: "", time: "", color: COLORS[0] });
+    }
   };
 
-  const deleteEvent = (id: string) => {
-    setEvents(events.filter(e => e.id !== id));
+  const deleteEvent = async (id: string) => {
+    if(!confirm(`Delete this event?`)) return;
+
+    const { error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      alert("Error deleting event: " + error.message);
+    } else {
+      setEvents(events.filter(e => e.id !== id));
+    }
   };
 
   const isWithinRange = (dateStr: string, start: string, end: string) => {
     return dateStr >= start && dateStr <= end;
   };
 
+  if (loading) return <div className={styles.loading}>Loading Calendar...</div>;
+
   // Calendar days grid
   const days = [];
-  // Padding for previous month
   for (let i = 0; i < firstDayOfMonth; i++) {
     days.push(<div key={`empty-${i}`} className={styles.dayEmpty}></div>);
   }
-  // Days of current month
+  
   for (let i = 1; i <= daysInMonth; i++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-    const dayEvents = events.filter(e => isWithinRange(dateStr, e.startDate, e.endDate || e.startDate));
+    const dayEvents = events.filter(e => isWithinRange(dateStr, e.startDate || (e as any).start_date, (e.endDate || (e as any).end_date) || (e.startDate || (e as any).start_date)));
     const isToday = new Date().toDateString() === new Date(year, month, i).toDateString();
 
     days.push(
@@ -116,7 +157,7 @@ export default function Calendar() {
               title={`${event.title}${event.time ? ` at ${event.time}` : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
-                if(confirm(`Delete "${event.title}"?`)) deleteEvent(event.id);
+                deleteEvent(event.id);
               }}
             >
               {event.time && <span className={styles.eventTime}>{event.time} </span>}
@@ -139,6 +180,13 @@ export default function Calendar() {
 
   return (
     <div className={styles.container}>
+      <div className={styles.header}>
+        <div className={styles.userInfo}>
+          <span>Logged in as <strong>{user?.email}</strong></span>
+          <button onClick={handleLogout} className={styles.btnLogout}>Sign Out</button>
+        </div>
+      </div>
+      
       <div className={styles.controls}>
         <div className={styles.monthInfo}>
           <h2>{MONTHS[month]} {year}</h2>
