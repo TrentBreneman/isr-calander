@@ -6,7 +6,9 @@ import styles from "./Calendar.module.css";
 interface CalendarEvent {
   id: string;
   title: string;
-  date: string; // ISO string YYYY-MM-DD
+  startDate: string; // ISO string YYYY-MM-DD
+  endDate?: string;   // ISO string YYYY-MM-DD
+  time?: string;      // HH:mm
   color: string;
 }
 
@@ -22,14 +24,27 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [newEvent, setNewEvent] = useState({ title: "", date: "", color: COLORS[0] });
+  const [newEvent, setNewEvent] = useState({ 
+    title: "", 
+    startDate: "", 
+    endDate: "", 
+    time: "", 
+    color: COLORS[0] 
+  });
 
   // Load events from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("company-events");
     if (saved) {
       try {
-        setEvents(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        // Migration: handle old format where it was just 'date'
+        const migrated = parsed.map((e: any) => ({
+          ...e,
+          startDate: e.startDate || e.date,
+          endDate: e.endDate || e.date
+        }));
+        setEvents(migrated);
       } catch (e) {
         console.error("Failed to load events", e);
       }
@@ -53,20 +68,28 @@ export default function Calendar() {
 
   const handleAddEvent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEvent.title || !newEvent.date) return;
+    if (!newEvent.title || !newEvent.startDate) return;
 
     const event: CalendarEvent = {
       id: Math.random().toString(36).substring(2, 9),
-      ...newEvent,
+      title: newEvent.title,
+      startDate: newEvent.startDate,
+      endDate: newEvent.endDate || newEvent.startDate,
+      time: newEvent.time,
+      color: newEvent.color,
     };
 
     setEvents([...events, event]);
     setShowModal(false);
-    setNewEvent({ title: "", date: "", color: COLORS[0] });
+    setNewEvent({ title: "", startDate: "", endDate: "", time: "", color: COLORS[0] });
   };
 
   const deleteEvent = (id: string) => {
     setEvents(events.filter(e => e.id !== id));
+  };
+
+  const isWithinRange = (dateStr: string, start: string, end: string) => {
+    return dateStr >= start && dateStr <= end;
   };
 
   // Calendar days grid
@@ -78,7 +101,7 @@ export default function Calendar() {
   // Days of current month
   for (let i = 1; i <= daysInMonth; i++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-    const dayEvents = events.filter(e => e.date === dateStr);
+    const dayEvents = events.filter(e => isWithinRange(dateStr, e.startDate, e.endDate || e.startDate));
     const isToday = new Date().toDateString() === new Date(year, month, i).toDateString();
 
     days.push(
@@ -87,15 +110,16 @@ export default function Calendar() {
         <div className={styles.eventList}>
           {dayEvents.map(event => (
             <div 
-              key={event.id} 
+              key={`${event.id}-${dateStr}`} 
               className={styles.eventItem} 
               style={{ backgroundColor: event.color }}
-              title={event.title}
+              title={`${event.title}${event.time ? ` at ${event.time}` : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
                 if(confirm(`Delete "${event.title}"?`)) deleteEvent(event.id);
               }}
             >
+              {event.time && <span className={styles.eventTime}>{event.time} </span>}
               {event.title}
             </div>
           ))}
@@ -103,7 +127,7 @@ export default function Calendar() {
         <button 
           className={styles.addDayBtn}
           onClick={() => {
-            setNewEvent({ ...newEvent, date: dateStr });
+            setNewEvent({ ...newEvent, startDate: dateStr, endDate: dateStr });
             setShowModal(true);
           }}
         >
@@ -150,13 +174,40 @@ export default function Calendar() {
                   required
                 />
               </div>
+              <div className={styles.row}>
+                <div className={styles.formGroup}>
+                  <label>Start Date</label>
+                  <input 
+                    type="date" 
+                    value={newEvent.startDate} 
+                    onChange={e => {
+                      const newStart = e.target.value;
+                      setNewEvent(prev => ({
+                        ...prev, 
+                        startDate: newStart,
+                        endDate: (prev.endDate && prev.endDate < newStart) ? newStart : prev.endDate
+                      }));
+                    }}
+                    required
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label>End Date</label>
+                  <input 
+                    type="date" 
+                    value={newEvent.endDate || newEvent.startDate} 
+                    min={newEvent.startDate}
+                    onChange={e => setNewEvent({...newEvent, endDate: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
               <div className={styles.formGroup}>
-                <label>Date</label>
+                <label>Time (optional)</label>
                 <input 
-                  type="date" 
-                  value={newEvent.date} 
-                  onChange={e => setNewEvent({...newEvent, date: e.target.value})}
-                  required
+                  type="time" 
+                  value={newEvent.time} 
+                  onChange={e => setNewEvent({...newEvent, time: e.target.value})}
                 />
               </div>
               <div className={styles.formGroup}>

@@ -238,6 +238,21 @@
   margin-top: 2rem;
 }
 
+.row {
+  display: flex;
+  gap: 1rem;
+}
+
+.row .formGroup {
+  flex: 1;
+}
+
+.eventTime {
+  font-weight: 700;
+  margin-right: 4px;
+  opacity: 0.9;
+}
+
 @media (max-width: 768px) {
   .day {
     min-height: 80px;
