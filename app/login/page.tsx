@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import Logo from "@/components/Logo";
 import styles from "./login.module.css";
 
 export default function LoginPage() {
@@ -48,6 +49,9 @@ export default function LoginPage() {
   return (
     <div className={styles.container}>
       <div className={styles.loginCard}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+          <Logo />
+        </div>
         <h1>{isLogin ? "Welcome Back" : "Join the Team"}</h1>
         <p className={styles.subtitle}>
           {isLogin ? "Sign in to view your company calendar" : "Create an account to join the shared calendar"}
