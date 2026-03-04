@@ -27,6 +27,7 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [newEvent, setNewEvent] = useState({ 
@@ -103,7 +104,6 @@ export default function Calendar() {
         // For simplicity, we make it a 1 hour event if no end time exists
         // This is a naive way to add 1 hour, but it works for simple cases.
         // A better way would be using Date objects.
-        const [h, m] = event.time.split(":").map(Number);
         const startDateObj = new Date(event.startDate + "T" + event.time);
         const endDateObj = new Date(startDateObj.getTime() + 60 * 60 * 1000);
         const endYear = endDateObj.getFullYear();
@@ -153,7 +153,7 @@ export default function Calendar() {
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
   const today = () => setCurrentDate(new Date());
 
-  const handleAddEvent = async (e: React.FormEvent) => {
+  const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEvent.title || !newEvent.startDate || !user) return;
 
@@ -166,17 +166,29 @@ export default function Calendar() {
       user_id: user.id
     };
 
-    const { data, error } = await supabase
-      .from('events')
-      .insert([eventData])
-      .select();
+    if (editingEvent) {
+      const { error } = await supabase
+        .from('events')
+        .update(eventData)
+        .eq('id', editingEvent.id);
 
-    if (error) {
-      alert("Error adding event: " + error.message);
+      if (error) {
+        alert("Error updating event: " + error.message);
+      } else {
+        await fetchEvents();
+        closeModal();
+      }
     } else {
-      await fetchEvents();
-      setShowModal(false);
-      setNewEvent({ title: "", startDate: "", endDate: "", time: "", color: COLORS[0] });
+      const { error } = await supabase
+        .from('events')
+        .insert([eventData]);
+
+      if (error) {
+        alert("Error adding event: " + error.message);
+      } else {
+        await fetchEvents();
+        closeModal();
+      }
     }
   };
 
@@ -192,7 +204,26 @@ export default function Calendar() {
       alert("Error deleting event: " + error.message);
     } else {
       setEvents(events.filter(e => e.id !== id));
+      closeModal();
     }
+  };
+
+  const openEditModal = (event: CalendarEvent) => {
+    setEditingEvent(event);
+    setNewEvent({
+      title: event.title,
+      startDate: event.startDate,
+      endDate: event.endDate || event.startDate,
+      time: event.time || "",
+      color: event.color
+    });
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setEditingEvent(null);
+    setNewEvent({ title: "", startDate: "", endDate: "", time: "", color: COLORS[0] });
   };
 
   const isWithinRange = (dateStr: string, start: string, end: string) => {
@@ -208,7 +239,7 @@ export default function Calendar() {
   
   for (let i = 1; i <= daysInMonth; i++) {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-    const dayEvents = events.filter(e => isWithinRange(dateStr, e.startDate || (e as any).start_date, (e.endDate || (e as any).end_date) || (e.startDate || (e as any).start_date)));
+    const dayEvents = events.filter(e => isWithinRange(dateStr, e.startDate, e.endDate || e.startDate));
     const isToday = new Date().toDateString() === new Date(year, month, i).toDateString();
 
     days.push(
@@ -223,7 +254,7 @@ export default function Calendar() {
               title={`${event.title}${event.time ? ` at ${event.time}` : ""}`}
               onClick={(e) => {
                 e.stopPropagation();
-                deleteEvent(event.id);
+                openEditModal(event);
               }}
             >
               {event.time && <span className={styles.eventTime}>{event.time} </span>}
@@ -276,10 +307,10 @@ export default function Calendar() {
       </div>
 
       {showModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
+        <div className={styles.modalOverlay} onClick={closeModal}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <h3>Add New Event</h3>
-            <form onSubmit={handleAddEvent}>
+            <h3>{editingEvent ? "Edit Event" : "Add New Event"}</h3>
+            <form onSubmit={handleSaveEvent}>
               <div className={styles.formGroup}>
                 <label>Event Title</label>
                 <input 
@@ -341,8 +372,20 @@ export default function Calendar() {
                 </div>
               </div>
               <div className={styles.modalActions}>
-                <button type="button" onClick={() => setShowModal(false)} className={styles.btnSecondary}>Cancel</button>
-                <button type="submit" className={styles.btnPrimary}>Save Event</button>
+                {editingEvent && (
+                  <button 
+                    type="button" 
+                    onClick={() => deleteEvent(editingEvent.id)} 
+                    className={styles.btnDelete}
+                    style={{ marginRight: 'auto' }}
+                  >
+                    Delete
+                  </button>
+                )}
+                <button type="button" onClick={closeModal} className={styles.btnSecondary}>Cancel</button>
+                <button type="submit" className={styles.btnPrimary}>
+                  {editingEvent ? "Update Event" : "Save Event"}
+                </button>
               </div>
             </form>
           </div>

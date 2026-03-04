@@ -93,6 +93,21 @@
   background: var(--gray-300);
 }
 
+.btnDelete {
+  background: #fff1f2;
+  color: #e11d48;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s;
+  border: 1px solid #fda4af;
+}
+
+.btnDelete:hover {
+  background: #ffe4e6;
+  border-color: #f43f5e;
+}
+
 .btnNav {
   background: var(--gray-200);
   width: 40px;
