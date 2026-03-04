@@ -65,7 +65,12 @@ export default function Calendar() {
     if (error) {
       console.error("Error fetching events:", error);
     } else if (data) {
-      setEvents(data as CalendarEvent[]);
+      const mappedEvents = data.map((e: any) => ({
+        ...e,
+        startDate: e.start_date,
+        endDate: e.end_date
+      }));
+      setEvents(mappedEvents as CalendarEvent[]);
     }
   }
 
