@@ -7,7 +7,7 @@ const config = {
   host: process.env.FTP_HOST,
   port: parseInt(process.env.FTP_PORT) || 21,
   localRoot: __dirname + "/out",
-  remoteRoot: "/public_html/israutomizer.com/", // Fixed directory name
+  remoteRoot: "/", // Deploy directly to the root directory
   include: ["*", "**/*"],
   exclude: [".git/**", ".DS_Store"],
   deleteRemote: true,
