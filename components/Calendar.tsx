@@ -77,51 +77,67 @@ export default function Calendar() {
   const handleExportICS = () => {
     if (events.length === 0) return;
 
-    let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Company Calendar//EN\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n";
+    let icsContent = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Company Calendar//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+    ].join("\r\n") + "\r\n";
 
     events.forEach(event => {
       const start = event.startDate.replace(/-/g, "");
       const end = (event.endDate || event.startDate).replace(/-/g, "");
-      
-      // If no time, it's an all-day event. End date in ICS for all-day is exclusive, so we add 1 day.
-      let dtStart = `VALUE=DATE:${start}`;
-      let dtEnd = `VALUE=DATE:${end}`;
-      
+
+      let dtStartValue = "";
+      let dtEndValue = "";
+
       if (event.time) {
         const timeStr = event.time.replace(":", "") + "00";
-        dtStart = `${start}T${timeStr}`;
+        dtStartValue = `:${start}T${timeStr}`;
         // For simplicity, we make it a 1 hour event if no end time exists
-        dtEnd = `${end}T${String(Number(timeStr) + 10000).padStart(6, "0")}`;
+        // This is a naive way to add 1 hour, but it works for simple cases.
+        // A better way would be using Date objects.
+        const [h, m] = event.time.split(":").map(Number);
+        const startDateObj = new Date(event.startDate + "T" + event.time);
+        const endDateObj = new Date(startDateObj.getTime() + 60 * 60 * 1000);
+        const endYear = endDateObj.getFullYear();
+        const endMonth = String(endDateObj.getMonth() + 1).padStart(2, "0");
+        const endDay = String(endDateObj.getDate()).padStart(2, "0");
+        const endHour = String(endDateObj.getHours()).padStart(2, "0");
+        const endMin = String(endDateObj.getMinutes()).padStart(2, "0");
+        dtEndValue = `:${endYear}${endMonth}${endDay}T${endHour}${endMin}00`;
       } else {
+        dtStartValue = `;VALUE=DATE:${start}`;
         // Add 1 day to end date for all-day exclusivity
         const endDateObj = new Date(event.endDate || event.startDate);
         endDateObj.setDate(endDateObj.getDate() + 1);
         const endYear = endDateObj.getFullYear();
         const endMonth = String(endDateObj.getMonth() + 1).padStart(2, "0");
         const endDay = String(endDateObj.getDate()).padStart(2, "0");
-        dtEnd = `VALUE=DATE:${endYear}${endMonth}${endDay}`;
+        dtEndValue = `;VALUE=DATE:${endYear}${endMonth}${endDay}`;
       }
 
-      icsContent += "BEGIN:VEVENT\n";
-      icsContent += `UID:${event.id}@companycalendar.com\n`;
-      icsContent += `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z\n`;
-      icsContent += `DTSTART;${dtStart}\n`;
-      icsContent += `DTEND;${dtEnd}\n`;
-      icsContent += `SUMMARY:${event.title}\n`;
-      icsContent += "END:VEVENT\n";
+      icsContent += [
+        "BEGIN:VEVENT",
+        `UID:${event.id}@companycalendar.com`,
+        `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").split(".")[0]}Z`,
+        `DTSTART${dtStartValue}`,
+        `DTEND${dtEndValue}`,
+        `SUMMARY:${event.title}`,
+        "END:VEVENT",
+      ].join("\r\n") + "\r\n";
     });
 
     icsContent += "END:VCALENDAR";
 
     const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
-    const link = document.createElement("a");
+    const link = document.body.appendChild(document.createElement("a"));
     link.href = window.URL.createObjectURL(blob);
     link.setAttribute("download", "company-calendar.ics");
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    link.remove();
   };
-
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 

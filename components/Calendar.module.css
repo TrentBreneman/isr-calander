@@ -8,10 +8,13 @@
 
 .header {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--gray-200);
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .userInfo {
@@ -61,6 +64,7 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .btnPrimary {
@@ -117,11 +121,11 @@
 
 .dayHeader {
   background: var(--gray-200);
-  padding: 1rem;
+  padding: 1rem 0.5rem;
   text-align: center;
   font-weight: 600;
   color: var(--gray-700);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -211,15 +215,18 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 1rem;
 }
 
 .modal {
   background: var(--background);
-  padding: 2rem;
+  padding: 1.5rem;
   border-radius: 16px;
   width: 100%;
-  max-width: 400px;
+  max-width: 450px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .modal h3 {
@@ -253,11 +260,12 @@
   display: flex;
   gap: 0.5rem;
   margin-top: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .colorOption {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid transparent;
@@ -291,14 +299,71 @@
 }
 
 @media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
   .day {
-    min-height: 80px;
+    min-height: 100px;
   }
   .eventItem {
     font-size: 0.7rem;
     padding: 2px 4px;
   }
   .monthInfo h2 {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
+  }
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .userInfo {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 480px) {
+  .day {
+    min-height: 70px;
+    padding: 0.25rem;
+  }
+  .dayNumber {
+    font-size: 0.8rem;
+  }
+  .dayHeader {
+    padding: 0.5rem 0;
+    font-size: 0.7rem;
+  }
+  .eventItem {
+    font-size: 0.65rem;
+    padding: 1px 2px;
+  }
+  .controls {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .nav {
+    justify-content: center;
+    width: 100%;
+  }
+  .btnNav {
+    width: 36px;
+    height: 36px;
+  }
+  .btnPrimary, .btnSecondary {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  .row {
+    flex-direction: column;
+    gap: 0;
+  }
+  .addDayBtn {
+    opacity: 0.5;
+    width: 18px;
+    height: 18px;
+    top: 0.25rem;
+    right: 0.25rem;
   }
 }

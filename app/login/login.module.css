@@ -113,3 +113,12 @@
 .linkButton:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 480px) {
+  .loginCard {
+    padding: 1.5rem;
+  }
+  .loginCard h1 {
+    font-size: 1.5rem;
+  }
+}

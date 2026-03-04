@@ -1,0 +1,42 @@
+.mainContainer {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.pageHeader {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.pageHeader h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.pageHeader p {
+  color: var(--gray-700);
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .mainContainer {
+    padding: 1rem;
+  }
+  .pageHeader h1 {
+    font-size: 1.8rem;
+  }
+  .pageHeader {
+    margin-bottom: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .mainContainer {
+    padding: 0.5rem;
+  }
+  .pageHeader h1 {
+    font-size: 1.5rem;
+  }
+}
