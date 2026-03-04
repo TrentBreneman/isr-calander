@@ -8,7 +8,7 @@ export default function Home() {
       <header className={styles.pageHeader}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
           <Logo />
-          <h1 style={{ margin: 0 }}>Company Calendar</h1>
+          <h1 style={{ margin: 0 }}>iSolvRisk Calendar</h1>
         </div>
         <p>Stay in sync with the team.</p>
       </header>

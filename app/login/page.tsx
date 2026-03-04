@@ -54,7 +54,7 @@ export default function LoginPage() {
         </div>
         <h1>{isLogin ? "Welcome Back" : "Join the Team"}</h1>
         <p className={styles.subtitle}>
-          {isLogin ? "Sign in to view your company calendar" : "Create an account to join the shared calendar"}
+          {isLogin ? "Sign in to view your iSolvRisk Calendar" : "Create an account to join the shared calendar"}
         </p>
 
         {error && <div className={styles.error}>{error}</div>}

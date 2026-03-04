@@ -86,7 +86,7 @@ export default function Calendar() {
     let icsContent = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//Company Calendar//EN",
+      "PRODID:-//iSolvRisk Calendar//EN",
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
     ].join("\r\n") + "\r\n";
@@ -166,6 +166,8 @@ export default function Calendar() {
       user_id: user.id
     };
 
+    console.log("Saving event data:", eventData);
+
     if (editingEvent) {
       const { error } = await supabase
         .from('events')
@@ -173,6 +175,7 @@ export default function Calendar() {
         .eq('id', editingEvent.id);
 
       if (error) {
+        console.error("Update error details:", error);
         alert("Error updating event: " + error.message);
       } else {
         await fetchEvents();
@@ -193,8 +196,6 @@ export default function Calendar() {
   };
 
   const deleteEvent = async (id: string) => {
-    if(!confirm(`Delete this event?`)) return;
-
     const { error } = await supabase
       .from('events')
       .delete()

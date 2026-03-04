@@ -1,4 +1,4 @@
-# Company Calendar
+# iSolvRisk Calendar
 
 A simple, modern calendar for our company built with Next.js.
 

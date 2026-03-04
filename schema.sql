@@ -23,6 +23,10 @@ CREATE POLICY "Anyone can view events" ON events
 CREATE POLICY "Authenticated users can create events" ON events
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
+-- Allow authenticated users to update events
+CREATE POLICY "Authenticated users can update events" ON events
+  FOR UPDATE USING (auth.role() = 'authenticated');
+
 -- Allow users to delete their own events (or all for now if shared)
 CREATE POLICY "Users can delete events" ON events
   FOR DELETE USING (auth.role() = 'authenticated');
