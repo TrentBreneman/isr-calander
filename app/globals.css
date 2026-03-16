@@ -41,6 +41,18 @@ body {
   color: var(--foreground);
 }
 
+button,
+input,
+optgroup,
+select,
+textarea {
+  font-family: inherit;
+  font-size: 100%;
+  line-height: 1.15;
+  margin: 0;
+  color: inherit;
+}
+
 a {
   color: inherit;
   text-decoration: none;
@@ -50,5 +62,4 @@ button {
   cursor: pointer;
   border: none;
   background: none;
-  font-family: inherit;
 }

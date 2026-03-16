@@ -23,6 +23,128 @@ const MONTHS = [
 
 const COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"];
 
+// Helper functions for calendar logic
+function getWeeks(year: number, month: number) {
+  const firstDayOfMonth = new Date(year, month, 1);
+  const startDay = firstDayOfMonth.getDay();
+  
+  const days = [];
+  
+  // Padding for start of month
+  const prevMonthLastDay = new Date(year, month, 0).getDate();
+  for (let i = startDay - 1; i >= 0; i--) {
+    days.push({
+      date: new Date(year, month - 1, prevMonthLastDay - i),
+      isCurrentMonth: false
+    });
+  }
+  
+  // Current month days
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let i = 1; i <= daysInMonth; i++) {
+    days.push({
+      date: new Date(year, month, i),
+      isCurrentMonth: true
+    });
+  }
+  
+  // Padding for end of month
+  const remaining = (7 - (days.length % 7)) % 7;
+  for (let i = 1; i <= remaining; i++) {
+    days.push({
+      date: new Date(year, month + 1, i),
+      isCurrentMonth: false
+    });
+  }
+  
+  const weeks = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
+  return weeks;
+}
+
+function formatDate(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+interface EventLayout {
+  event: CalendarEvent;
+  startCol: number;
+  span: number;
+  slot: number;
+}
+
+function layoutEventsForWeek(events: CalendarEvent[], weekDays: {date: Date}[]) {
+  const weekStartStr = formatDate(weekDays[0].date);
+  const weekEndStr = formatDate(weekDays[6].date);
+  
+  const weekEvents = events.filter(e => {
+    const start = e.startDate;
+    const end = e.endDate || e.startDate;
+    return start <= weekEndStr && end >= weekStartStr;
+  });
+
+  // Sort: multi-day events first, then by duration, then by start date
+  weekEvents.sort((a, b) => {
+    const aEnd = a.endDate || a.startDate;
+    const bEnd = b.endDate || b.startDate;
+    const aLen = (new Date(aEnd).getTime() - new Date(a.startDate).getTime());
+    const bLen = (new Date(bEnd).getTime() - new Date(b.startDate).getTime());
+    
+    if (aLen !== bLen) return bLen - aLen;
+    return a.startDate.localeCompare(b.startDate);
+  });
+
+  const layout: EventLayout[] = [];
+  const occupied = new Set<string>();
+
+  weekEvents.forEach(event => {
+    const eStart = event.startDate;
+    const eEnd = event.endDate || event.startDate;
+    
+    let startCol = -1;
+    let endCol = -1;
+    
+    for (let i = 0; i < 7; i++) {
+      const dayStr = formatDate(weekDays[i].date);
+      if (dayStr >= eStart && dayStr <= eEnd) {
+        if (startCol === -1) startCol = i;
+        endCol = i;
+      }
+    }
+    
+    if (startCol !== -1) {
+      let slot = 0;
+      while (true) {
+        let isFree = true;
+        for (let c = startCol; c <= endCol; c++) {
+          if (occupied.has(`${slot}-${c}`)) {
+            isFree = false;
+            break;
+          }
+        }
+        
+        if (isFree) {
+          for (let c = startCol; c <= endCol; c++) {
+            occupied.add(`${slot}-${c}`);
+          }
+          layout.push({
+            event,
+            startCol: startCol + 1,
+            span: (endCol - startCol) + 1,
+            slot
+          });
+          break;
+        }
+        slot++;
+      }
+    }
+  });
+  
+  return layout;
+}
+
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
@@ -101,9 +223,6 @@ export default function Calendar() {
       if (event.time) {
         const timeStr = event.time.replace(":", "") + "00";
         dtStartValue = `:${start}T${timeStr}`;
-        // For simplicity, we make it a 1 hour event if no end time exists
-        // This is a naive way to add 1 hour, but it works for simple cases.
-        // A better way would be using Date objects.
         const startDateObj = new Date(event.startDate + "T" + event.time);
         const endDateObj = new Date(startDateObj.getTime() + 60 * 60 * 1000);
         const endYear = endDateObj.getFullYear();
@@ -114,7 +233,6 @@ export default function Calendar() {
         dtEndValue = `:${endYear}${endMonth}${endDay}T${endHour}${endMin}00`;
       } else {
         dtStartValue = `;VALUE=DATE:${start}`;
-        // Add 1 day to end date for all-day exclusivity
         const endDateObj = new Date(event.endDate || event.startDate);
         endDateObj.setDate(endDateObj.getDate() + 1);
         const endYear = endDateObj.getFullYear();
@@ -146,9 +264,6 @@ export default function Calendar() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const firstDayOfMonth = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
   const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
   const today = () => setCurrentDate(new Date());
@@ -166,8 +281,6 @@ export default function Calendar() {
       user_id: user.id
     };
 
-    console.log("Saving event data:", eventData);
-
     if (editingEvent) {
       const { error } = await supabase
         .from('events')
@@ -175,7 +288,6 @@ export default function Calendar() {
         .eq('id', editingEvent.id);
 
       if (error) {
-        console.error("Update error details:", error);
         alert("Error updating event: " + error.message);
       } else {
         await fetchEvents();
@@ -227,54 +339,9 @@ export default function Calendar() {
     setNewEvent({ title: "", startDate: "", endDate: "", time: "", color: COLORS[0] });
   };
 
-  const isWithinRange = (dateStr: string, start: string, end: string) => {
-    return dateStr >= start && dateStr <= end;
-  };
-
   if (loading) return <div className={styles.loading}>Loading Calendar...</div>;
 
-  const days = [];
-  for (let i = 0; i < firstDayOfMonth; i++) {
-    days.push(<div key={`empty-${i}`} className={styles.dayEmpty}></div>);
-  }
-  
-  for (let i = 1; i <= daysInMonth; i++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-    const dayEvents = events.filter(e => isWithinRange(dateStr, e.startDate, e.endDate || e.startDate));
-    const isToday = new Date().toDateString() === new Date(year, month, i).toDateString();
-
-    days.push(
-      <div key={i} className={`${styles.day} ${isToday ? styles.today : ""}`}>
-        <span className={styles.dayNumber}>{i}</span>
-        <div className={styles.eventList}>
-          {dayEvents.map(event => (
-            <div 
-              key={`${event.id}-${dateStr}`} 
-              className={styles.eventItem} 
-              style={{ backgroundColor: event.color }}
-              title={`${event.title}${event.time ? ` at ${event.time}` : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                openEditModal(event);
-              }}
-            >
-              {event.time && <span className={styles.eventTime}>{event.time} </span>}
-              {event.title}
-            </div>
-          ))}
-        </div>
-        <button 
-          className={styles.addDayBtn}
-          onClick={() => {
-            setNewEvent({ ...newEvent, startDate: dateStr, endDate: dateStr });
-            setShowModal(true);
-          }}
-        >
-          +
-        </button>
-      </div>
-    );
-  }
+  const weeks = getWeeks(year, month);
 
   return (
     <div className={styles.container}>
@@ -301,10 +368,84 @@ export default function Calendar() {
       </div>
 
       <div className={styles.calendarGrid}>
-        {DAYS_OF_WEEK.map(day => (
-          <div key={day} className={styles.dayHeader}>{day}</div>
-        ))}
-        {days}
+        <div className={styles.dayHeaders}>
+          {DAYS_OF_WEEK.map(day => (
+            <div key={day} className={styles.dayHeader}>{day}</div>
+          ))}
+        </div>
+        
+        {weeks.map((week, weekIdx) => {
+          const layouts = layoutEventsForWeek(events, week);
+          return (
+            <div key={weekIdx} className={styles.week}>
+              {/* Day backgrounds and numbers */}
+              {week.map((day, dayIdx) => {
+                const dateStr = formatDate(day.date);
+                const isToday = new Date().toDateString() === day.date.toDateString();
+                return (
+                  <React.Fragment key={dateStr}>
+                    <div 
+                      className={`${styles.dayBackground} ${isToday ? styles.today : ""} ${!day.isCurrentMonth ? styles.notCurrentMonth : ""}`}
+                      style={{ gridColumn: dayIdx + 1 }}
+                    />
+                    <div className={`${styles.dayNumberContainer} ${!day.isCurrentMonth ? styles.notCurrentMonth : ""}`} style={{ gridColumn: dayIdx + 1 }}>
+                      <span className={styles.dayNumber}>{day.date.getDate()}</span>
+                    </div>
+                    <button 
+                      className={styles.addDayBtn}
+                      style={{ gridColumn: dayIdx + 1 }}
+                      onClick={() => {
+                        setNewEvent({ ...newEvent, startDate: dateStr, endDate: dateStr });
+                        setShowModal(true);
+                      }}
+                    >
+                      +
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+
+              {/* Event bars */}
+              {layouts.map(({ event, startCol, span, slot }, layoutIdx) => {
+                const eStart = event.startDate;
+                const eEnd = event.endDate || event.startDate;
+                const weekStart = formatDate(week[0].date);
+                const weekEnd = formatDate(week[6].date);
+                
+                const isStart = eStart >= weekStart && eStart <= weekEnd;
+                const isEnd = eEnd >= weekStart && eEnd <= weekEnd;
+                const isMultiDay = eStart !== eEnd;
+
+                let className = styles.eventBar;
+                if (isMultiDay) {
+                  if (isStart && isEnd) className += ` ${styles.singleDay}`;
+                  else if (isStart) className += ` ${styles.multiDayStart}`;
+                  else if (isEnd) className += ` ${styles.multiDayEnd}`;
+                  else className += ` ${styles.multiDayMiddle}`;
+                } else {
+                  className += ` ${styles.singleDay}`;
+                }
+
+                return (
+                  <div 
+                    key={`${event.id}-${layoutIdx}`}
+                    className={className}
+                    style={{ 
+                      gridColumn: `${startCol} / span ${span}`,
+                      gridRow: slot + 2,
+                      backgroundColor: event.color
+                    }}
+                    title={`${event.title}${event.time ? ` at ${event.time}` : ""}`}
+                    onClick={() => openEditModal(event)}
+                  >
+                    {isStart && event.time && <span className={styles.eventTime}>{event.time}</span>}
+                    {isStart && <span className={styles.eventTitle}>{event.title}</span>}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
 
       {showModal && (
