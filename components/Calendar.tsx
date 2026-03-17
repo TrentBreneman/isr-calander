@@ -389,18 +389,20 @@ export default function Calendar() {
                       style={{ gridColumn: dayIdx + 1 }}
                     />
                     <div className={`${styles.dayNumberContainer} ${!day.isCurrentMonth ? styles.notCurrentMonth : ""}`} style={{ gridColumn: dayIdx + 1 }}>
-                      <span className={styles.dayNumber}>{day.date.getDate()}</span>
+                      {day.isCurrentMonth && <span className={styles.dayNumber}>{day.date.getDate()}</span>}
                     </div>
-                    <button 
-                      className={styles.addDayBtn}
-                      style={{ gridColumn: dayIdx + 1 }}
-                      onClick={() => {
-                        setNewEvent({ ...newEvent, startDate: dateStr, endDate: dateStr });
-                        setShowModal(true);
-                      }}
-                    >
-                      +
-                    </button>
+                    {day.isCurrentMonth && (
+                      <button 
+                        className={styles.addDayBtn}
+                        style={{ gridColumn: dayIdx + 1 }}
+                        onClick={() => {
+                          setNewEvent({ ...newEvent, startDate: dateStr, endDate: dateStr });
+                          setShowModal(true);
+                        }}
+                      >
+                        +
+                      </button>
+                    )}
                   </React.Fragment>
                 );
               })}
