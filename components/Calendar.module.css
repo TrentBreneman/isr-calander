@@ -3,8 +3,10 @@
   padding: 0.5rem 1rem;
   max-width: 100%;
   margin: 0 auto;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .header {
@@ -15,6 +17,7 @@
   padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--gray-200);
   gap: 1rem;
+  flex-shrink: 0;
 }
 
 .userInfo {
@@ -42,7 +45,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
+  height: 100vh;
   font-weight: 500;
   color: var(--gray-700);
 }
@@ -138,7 +141,7 @@
   grid-template-columns: repeat(7, 1fr);
   grid-auto-rows: minmax(18px, auto);
   position: relative;
-  min-height: 100px;
+  flex: 1;
 }
 
 .dayBackground {
