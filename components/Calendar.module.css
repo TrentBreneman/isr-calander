@@ -170,14 +170,14 @@
 .dayNumberContainer {
   grid-row: 1;
   padding: 4px 6px;
-  z-index: 2;
+  z-index: 5;
   pointer-events: none;
   display: flex;
   justify-content: flex-end; /* Align number to the right like Apple Calendar */
 }
 
 .dayNumber {
-  font-weight: 400;
+  font-weight: 600;
   font-size: 0.8rem;
   display: inline-flex;
   align-items: center;
@@ -185,22 +185,25 @@
   width: 24px;
   height: 24px;
   pointer-events: auto;
-  color: var(--gray-700);
+  color: var(--foreground);
+  background: var(--background);
+  border-radius: 50%;
 }
 
 .notCurrentMonth .dayNumber {
-  opacity: 0.3;
+  opacity: 0.4;
+  background: transparent;
 }
 
 .today .dayNumber {
   background: #ff3b30; /* Apple Red */
   color: white !important;
   border-radius: 50%;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .eventBar {
-  z-index: 3;
+  z-index: 2;
   margin: 1px 0;
   padding: 1px 6px;
   font-size: 0.7rem;
