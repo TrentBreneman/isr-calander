@@ -15,18 +15,32 @@ export default function ResetPasswordPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    // Check if we have a session (meaning the reset link was valid)
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    // Check if we already have a session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
-        // We might need to handle the case where the user lands here without a session
-        // but typically Supabase handles the recovery link by establishing a session.
-        // If no session, it might be an invalid or expired link.
-        console.log("No session found on reset page");
+        // If no session, it might be because the URL fragments haven't been processed yet
+        // Supabase Browser Client handles fragments automatically, but it takes a moment
+        console.log("No initial session on reset page");
       }
+    });
+
+    // Listen for the recovery event from Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth event on reset page:", event);
+      
+      if (event === "PASSWORD_RECOVERY") {
+        console.log("Confirmed PASSWORD_RECOVERY mode");
+      }
+      
+      if (event === "SIGNED_OUT") {
+        setError("Your reset session has ended or the link is invalid. Please request a new link.");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
     };
-    checkSession();
-  }, [supabase]);
+  }, [supabase, router]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
