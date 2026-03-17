@@ -71,7 +71,19 @@ export default function LoginPage() {
             />
           </div>
           <div className={styles.formGroup}>
-            <label>Password</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label style={{ marginBottom: 0 }}>Password</label>
+              {isLogin && (
+                <button 
+                  type="button" 
+                  onClick={() => router.push("/login/forgot-password")}
+                  className={styles.linkButton}
+                  style={{ fontSize: '0.75rem' }}
+                >
+                  Forgot Password?
+                </button>
+              )}
+            </div>
             <input 
               type="password" 
               placeholder="••••••••"
