@@ -68,11 +68,20 @@ function formatDate(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function formatTime12h(timeStr: string | undefined) {
+  if (!timeStr) return "";
+  const [h, m] = timeStr.split(":");
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const h12 = hour % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
+}
+
 interface EventLayout {
   event: CalendarEvent;
   startCol: number;
   span: number;
-  slot: number;
+  gridRow: number;
 }
 
 function layoutEventsForWeek(events: CalendarEvent[], weekDays: {date: Date}[]) {
@@ -85,15 +94,22 @@ function layoutEventsForWeek(events: CalendarEvent[], weekDays: {date: Date}[]) 
     return start <= weekEndStr && end >= weekStartStr;
   });
 
-  // Sort: multi-day events first, then by duration, then by start date
+  // Sort: Multi-day events first, then by start date, then by time
   weekEvents.sort((a, b) => {
     const aEnd = a.endDate || a.startDate;
     const bEnd = b.endDate || b.startDate;
-    const aLen = (new Date(aEnd).getTime() - new Date(a.startDate).getTime());
-    const bLen = (new Date(bEnd).getTime() - new Date(b.startDate).getTime());
+    const aIsMulti = a.startDate !== aEnd;
+    const bIsMulti = b.startDate !== bEnd;
+
+    if (aIsMulti && !bIsMulti) return -1;
+    if (!aIsMulti && bIsMulti) return 1;
     
-    if (aLen !== bLen) return bLen - aLen;
-    return a.startDate.localeCompare(b.startDate);
+    if (a.startDate !== b.startDate) return a.startDate.localeCompare(b.startDate);
+    
+    if (a.time && b.time) return a.time.localeCompare(b.time);
+    if (a.time) return 1;
+    if (b.time) return -1;
+    return 0;
   });
 
   const layout: EventLayout[] = [];
@@ -102,6 +118,7 @@ function layoutEventsForWeek(events: CalendarEvent[], weekDays: {date: Date}[]) 
   weekEvents.forEach(event => {
     const eStart = event.startDate;
     const eEnd = event.endDate || event.startDate;
+    const isMulti = eStart !== eEnd;
     
     let startCol = -1;
     let endCol = -1;
@@ -115,29 +132,45 @@ function layoutEventsForWeek(events: CalendarEvent[], weekDays: {date: Date}[]) 
     }
     
     if (startCol !== -1) {
-      let slot = 0;
-      while (true) {
-        let isFree = true;
-        for (let c = startCol; c <= endCol; c++) {
-          if (occupied.has(`${slot}-${c}`)) {
-            isFree = false;
+      if (isMulti || !event.time) {
+        // Multi-day or All-day: Use slots at the top (Rows 2-5)
+        let slot = 0;
+        while (slot < 4) {
+          let isFree = true;
+          for (let c = startCol; c <= endCol; c++) {
+            if (occupied.has(`${slot}-${c}`)) {
+              isFree = false;
+              break;
+            }
+          }
+          
+          if (isFree) {
+            for (let c = startCol; c <= endCol; c++) {
+              occupied.add(`${slot}-${c}`);
+            }
+            layout.push({
+              event,
+              startCol: startCol + 1,
+              span: (endCol - startCol) + 1,
+              gridRow: slot + 2
+            });
             break;
           }
+          slot++;
         }
-        
-        if (isFree) {
-          for (let c = startCol; c <= endCol; c++) {
-            occupied.add(`${slot}-${c}`);
-          }
-          layout.push({
-            event,
-            startCol: startCol + 1,
-            span: (endCol - startCol) + 1,
-            slot
-          });
-          break;
+        // Fallback for many all-day events
+        if (layout.length > 0 && layout[layout.length - 1].event.id !== event.id) {
+          layout.push({ event, startCol: startCol + 1, span: (endCol - startCol) + 1, gridRow: 5 });
         }
-        slot++;
+      } else {
+        // Single-day Timed: Position vertically by hour (Rows 6-30)
+        const hour = parseInt(event.time.split(":")[0], 10);
+        layout.push({
+          event,
+          startCol: startCol + 1,
+          span: 1,
+          gridRow: hour + 6
+        });
       }
     }
   });
@@ -408,7 +441,7 @@ export default function Calendar() {
               })}
 
               {/* Event bars */}
-              {layouts.map(({ event, startCol, span, slot }, layoutIdx) => {
+              {layouts.map(({ event, startCol, span, gridRow }, layoutIdx) => {
                 const eStart = event.startDate;
                 const eEnd = event.endDate || event.startDate;
                 const weekStart = formatDate(week[0].date);
@@ -434,13 +467,13 @@ export default function Calendar() {
                     className={className}
                     style={{ 
                       gridColumn: `${startCol} / span ${span}`,
-                      gridRow: slot + 2,
+                      gridRow: gridRow,
                       backgroundColor: event.color
                     }}
-                    title={`${event.title}${event.time ? ` at ${event.time}` : ""}`}
+                    title={`${event.title}${event.time ? ` at ${formatTime12h(event.time)}` : ""}`}
                     onClick={() => openEditModal(event)}
                   >
-                    {isStart && event.time && <span className={styles.eventTime}>{event.time}</span>}
+                    {isStart && event.time && <span className={styles.eventTime}>{formatTime12h(event.time)}</span>}
                     {isStart && <span className={styles.eventTitle}>{event.title}</span>}
                   </div>
                 );
