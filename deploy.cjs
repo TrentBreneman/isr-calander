@@ -8,7 +8,7 @@ const config = {
   port: parseInt(process.env.FTP_PORT) || 21,
   localRoot: __dirname + "/out",
   remoteRoot: "/", // Deploy directly to the root directory
-  include: ["*", "**/*"],
+  include: ["*", "**/*", ".*"],
   exclude: [".git/**", ".DS_Store"],
   deleteRemote: true,
   forcePasv: true,
