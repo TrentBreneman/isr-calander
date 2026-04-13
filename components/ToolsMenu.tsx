@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Menu, X, CreditCard } from "lucide-react";
+import { Menu, X, CreditCard, Cpu } from "lucide-react";
 import styles from "./ToolsMenu.module.css";
 import BusinessCardScanner from "./BusinessCardScanner";
+import Automizer from "./Automizer";
 
 export default function ToolsMenu() {
   const [isOpen, setIsOpen] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [showAutomizer, setShowAutomizer] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close menu when clicking outside
@@ -35,7 +37,17 @@ export default function ToolsMenu() {
             <CreditCard size={20} className={styles.menuIcon} />
             Business Card Scanner
           </button>
-          {/* Add more tools here later */}
+          
+          <button 
+            className={styles.menuItem} 
+            onClick={() => {
+              setShowAutomizer(true);
+              setIsOpen(false);
+            }}
+          >
+            <Cpu size={20} className={styles.menuIcon} />
+            ISR Automizer
+          </button>
         </div>
       )}
       
@@ -49,6 +61,10 @@ export default function ToolsMenu() {
 
       {showScanner && (
         <BusinessCardScanner onClose={() => setShowScanner(false)} />
+      )}
+
+      {showAutomizer && (
+        <Automizer onClose={() => setShowAutomizer(false)} />
       )}
     </div>
   );
