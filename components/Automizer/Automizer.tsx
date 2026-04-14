@@ -84,7 +84,10 @@ export default function Automizer({ onClose }: AutomizerProps) {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       
-      let originalName = response.headers.get("X-Original-Name") || file.name;
+      let originalName = response.headers.get("X-Original-Name") 
+        ? decodeURIComponent(response.headers.get("X-Original-Name")!) 
+        : file.name;
+      
       if (!originalName.toLowerCase().endsWith(".pdf")) {
         originalName += ".pdf";
       }
