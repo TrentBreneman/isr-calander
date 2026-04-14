@@ -43,3 +43,6 @@ next-env.d.ts
 *.sublime-workspace
 output/
 out.Zip
+
+# Gemini Context
+GEMINI.md
