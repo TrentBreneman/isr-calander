@@ -3,8 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Menu, X, CreditCard, Cpu } from "lucide-react";
 import styles from "./ToolsMenu.module.css";
-import BusinessCardScanner from "./BusinessCardScanner";
-import Automizer from "./Automizer";
+import BusinessCardScanner from "@/components/BusinessCardScanner";
+import Automizer from "@/components/Automizer";
 
 export default function ToolsMenu() {
   const [isOpen, setIsOpen] = useState(false);
