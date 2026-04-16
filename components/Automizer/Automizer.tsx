@@ -4,6 +4,8 @@ import React, { useState, useRef, DragEvent } from "react";
 import { X, FileText, Upload, Download, Loader2 } from "lucide-react";
 import styles from "./Automizer.module.css";
 
+import { PDFDocument } from "pdf-lib";
+
 interface AutomizerProps {
   onClose: () => void;
 }
@@ -47,53 +49,43 @@ export default function Automizer({ onClose }: AutomizerProps) {
   const handleFiles = (files: FileList) => {
     const file = files[0];
     if (file && file.type === "application/pdf") {
-      uploadFile(file);
+      processFileLocally(file);
     } else {
       setError("Please upload a valid PDF file.");
     }
   };
 
-  const uploadFile = async (file: File) => {
+  const processFileLocally = async (file: File) => {
     setIsProcessing(true);
-    setProgress(0);
+    setProgress(20);
     setDownloadUrl(null);
     setError(null);
     setFileName(file.name);
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      // Simulate progress for better UX
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => (prev < 90 ? prev + 10 : prev));
-      }, 200);
-
-      const response = await fetch("/api/automizer", {
-        method: "POST",
-        body: formData,
-      });
-
-      clearInterval(progressInterval);
-      setProgress(100);
-
-      if (!response.ok) {
-        throw new Error("Upload failed");
+      const arrayBuffer = await file.arrayBuffer();
+      setProgress(40);
+      
+      const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
+      setProgress(60);
+      
+      const pageCount = pdfDoc.getPageCount();
+      if (pageCount === 0) {
+        throw new Error("The PDF has no pages.");
       }
 
-      const blob = await response.blob();
+      // We can apply any "automation" or "formatting" logic here in the future
+      // For now, we save it with optimized streams for compatibility
+      const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
+      setProgress(90);
+
+      // Explicitly use Uint8Array for Blob compatibility
+      const blob = new Blob([new Uint8Array(pdfBytes)], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       
-      let originalName = response.headers.get("X-Original-Name") 
-        ? decodeURIComponent(response.headers.get("X-Original-Name")!) 
-        : file.name;
-      
-      if (!originalName.toLowerCase().endsWith(".pdf")) {
-        originalName += ".pdf";
-      }
-
       setDownloadUrl(url);
-      setFileName(`formatted-${originalName}`);
+      setFileName(`formatted-${file.name}`);
+      setProgress(100);
     } catch (err) {
       console.error(err);
       setError("Failed to process PDF. Please try again.");
