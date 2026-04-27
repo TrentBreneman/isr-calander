@@ -159,17 +159,33 @@
   border-bottom: 1px solid var(--gray-200);
   background: var(--background);
   z-index: 1;
+  transition: background-color 0.15s ease;
+}
+
+.dayBackground:hover {
+  background: var(--gray-50);
 }
 
 .dayBackground.notCurrentMonth {
   background: rgba(0, 0, 0, 0.015);
 }
 
+.dayBackground.notCurrentMonth:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
 .today.dayBackground {
   background: rgba(255, 59, 48, 0.04);
 }
 
+.today.dayBackground:hover {
+  background: rgba(255, 59, 48, 0.08);
+}
+
 @media (prefers-color-scheme: dark) {
+  .dayBackground:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
   .dayBackground.notCurrentMonth {
     background: rgba(255, 255, 255, 0.015);
   }
@@ -225,14 +241,17 @@
   text-overflow: ellipsis;
   border-radius: 3px;
   box-shadow: 0 1px 1px rgba(0,0,0,0.05);
-  transition: opacity 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   height: 20px;
 }
 
 .eventBar:hover {
-  opacity: 0.85;
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  z-index: 10;
 }
 
 .eventBar.multiDayStart {
@@ -379,6 +398,91 @@
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 1.5rem;
+}
+
+.detailCard {
+  background: var(--background);
+  padding: 0;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.detailHeader {
+  padding: 1rem 1.25rem;
+  background: var(--gray-50);
+  border-bottom: 1px solid var(--gray-100);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detailHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.btnClose {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--gray-500);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.btnClose:hover {
+  background: var(--gray-200);
+  color: var(--foreground);
+}
+
+.detailBody {
+  padding: 1.25rem;
+}
+
+.detailRow {
+  display: flex;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--gray-700);
+}
+
+.detailRow:last-child {
+  margin-bottom: 0;
+}
+
+.detailLabel {
+  font-weight: 600;
+  width: 60px;
+  flex-shrink: 0;
+  color: var(--gray-500);
+}
+
+.detailActions {
+  padding: 0.75rem 1.25rem;
+  background: var(--gray-50);
+  border-top: 1px solid var(--gray-100);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  .detailHeader, .detailActions {
+    background: rgba(255, 255, 255, 0.03);
+  }
 }
 
 @media (max-width: 1024px) {

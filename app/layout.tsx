@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ToolsMenu from "@/components/ToolsMenu";
+import QueryProvider from "@/components/QueryProvider";
 
 export const metadata: Metadata = {
   title: "iSolvRisk Calendar",
@@ -19,8 +20,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
-        <ToolsMenu />
+        <QueryProvider>
+          {children}
+          <ToolsMenu />
+        </QueryProvider>
       </body>
     </html>
   );

@@ -4,16 +4,17 @@ import React, { useState, useEffect } from "react";
 import styles from "./Calendar.module.css";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-
-interface CalendarEvent {
-  id: string;
-  title: string;
-  startDate: string; // ISO string YYYY-MM-DD
-  endDate?: string;   // ISO string YYYY-MM-DD
-  time?: string;      // HH:mm
-  color: string;
-  user_id?: string;
-}
+import { 
+  format, 
+  parseISO
+} from "date-fns";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { 
+  getWeeks, 
+  formatDate, 
+  layoutEventsForWeek, 
+  CalendarEvent 
+} from "@/lib/calendar-utils";
 
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -22,52 +23,6 @@ const MONTHS = [
 ];
 
 const COLORS = ["#3b82f6", "#ef4444", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"];
-
-// Helper functions for calendar logic
-function getWeeks(year: number, month: number) {
-  const firstDayOfMonth = new Date(year, month, 1);
-  const startDay = firstDayOfMonth.getDay();
-  
-  const days = [];
-  
-  // Padding for start of month
-  const prevMonthLastDay = new Date(year, month, 0).getDate();
-  for (let i = startDay - 1; i >= 0; i--) {
-    days.push({
-      date: new Date(year, month - 1, prevMonthLastDay - i),
-      isCurrentMonth: false
-    });
-  }
-  
-  // Current month days
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  for (let i = 1; i <= daysInMonth; i++) {
-    days.push({
-      date: new Date(year, month, i),
-      isCurrentMonth: true
-    });
-  }
-  
-  // Padding for end of month to always show 6 weeks (42 days)
-  const totalDaysNeeded = 42;
-  const currentCount = days.length;
-  for (let i = 1; i <= totalDaysNeeded - currentCount; i++) {
-    days.push({
-      date: new Date(year, month + 1, i),
-      isCurrentMonth: false
-    });
-  }
-  
-  const weeks = [];
-  for (let i = 0; i < days.length; i += 7) {
-    weeks.push(days.slice(i, i + 7));
-  }
-  return weeks;
-}
-
-function formatDate(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
 
 function formatTime12h(timeStr: string | undefined) {
   if (!timeStr) return "";
@@ -78,114 +33,13 @@ function formatTime12h(timeStr: string | undefined) {
   return `${h12}:${m} ${ampm}`;
 }
 
-interface EventLayout {
-  event: CalendarEvent;
-  startCol: number;
-  span: number;
-  gridRow: number;
-}
-
-function layoutEventsForWeek(events: CalendarEvent[], weekDays: {date: Date}[]) {
-  const weekStartStr = formatDate(weekDays[0].date);
-  const weekEndStr = formatDate(weekDays[6].date);
-  
-  const weekEvents = events.filter(e => {
-    const start = e.startDate;
-    const end = e.endDate || e.startDate;
-    return start <= weekEndStr && end >= weekStartStr;
-  });
-
-  // Sort: Multi-day events first, then by start date, then by time
-  weekEvents.sort((a, b) => {
-    const aEnd = a.endDate || a.startDate;
-    const bEnd = b.endDate || b.startDate;
-    const aIsMulti = a.startDate !== aEnd;
-    const bIsMulti = b.startDate !== bEnd;
-
-    if (aIsMulti && !bIsMulti) return -1;
-    if (!aIsMulti && bIsMulti) return 1;
-    
-    if (a.startDate !== b.startDate) return a.startDate.localeCompare(b.startDate);
-    
-    if (a.time && b.time) return a.time.localeCompare(b.time);
-    if (a.time) return 1;
-    if (b.time) return -1;
-    return 0;
-  });
-
-  const layout: EventLayout[] = [];
-  const occupied = new Set<string>();
-
-  weekEvents.forEach(event => {
-    const eStart = event.startDate;
-    const eEnd = event.endDate || event.startDate;
-    const isMulti = eStart !== eEnd;
-    
-    let startCol = -1;
-    let endCol = -1;
-    
-    for (let i = 0; i < 7; i++) {
-      const dayStr = formatDate(weekDays[i].date);
-      if (dayStr >= eStart && dayStr <= eEnd) {
-        if (startCol === -1) startCol = i;
-        endCol = i;
-      }
-    }
-    
-    if (startCol !== -1) {
-      if (isMulti || !event.time) {
-        // Multi-day or All-day: Use slots at the top (Rows 2-5)
-        let slot = 0;
-        while (slot < 4) {
-          let isFree = true;
-          for (let c = startCol; c <= endCol; c++) {
-            if (occupied.has(`${slot}-${c}`)) {
-              isFree = false;
-              break;
-            }
-          }
-          
-          if (isFree) {
-            for (let c = startCol; c <= endCol; c++) {
-              occupied.add(`${slot}-${c}`);
-            }
-            layout.push({
-              event,
-              startCol: startCol + 1,
-              span: (endCol - startCol) + 1,
-              gridRow: slot + 2
-            });
-            break;
-          }
-          slot++;
-        }
-        // Fallback for many all-day events
-        if (layout.length > 0 && layout[layout.length - 1].event.id !== event.id) {
-          layout.push({ event, startCol: startCol + 1, span: (endCol - startCol) + 1, gridRow: 5 });
-        }
-      } else {
-        // Single-day Timed: Position vertically by hour (Rows 6-30)
-        const hour = parseInt(event.time.split(":")[0], 10);
-        layout.push({
-          event,
-          startCol: startCol + 1,
-          span: 1,
-          gridRow: hour + 6
-        });
-      }
-    }
-  });
-  
-  return layout;
-}
-
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true);
   const [newEvent, setNewEvent] = useState({ 
     title: "", 
     startDate: "", 
@@ -196,13 +50,13 @@ export default function Calendar() {
   
   const router = useRouter();
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
-  // Check auth and load events
+  // Check auth
   useEffect(() => {
     async function init() {
       let { data: { user } } = await supabase.auth.getUser();
       
-      // Development bypass logic
       if (!user && process.env.NODE_ENV === 'development' && typeof window !== 'undefined' && localStorage.getItem('dev_bypass')) {
         user = { 
           id: '00000000-0000-0000-0000-000000000000', 
@@ -212,38 +66,61 @@ export default function Calendar() {
       }
       
       setUser(user);
-      
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-
-      await fetchEvents();
-      setLoading(false);
+      if (!user) router.push("/login");
+      setAuthLoading(false);
     }
     init();
   }, [router]);
 
-  async function fetchEvents() {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*');
-    
-    if (error) {
-      console.error("Error fetching events:", error);
-    } else if (data) {
-      const mappedEvents = data.map((e: any) => ({
+  // Query events
+  const { data: events = [], isLoading: eventsLoading } = useQuery({
+    queryKey: ['events'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('events').select('*');
+      if (error) throw error;
+      return data.map((e: any) => ({
         ...e,
         startDate: e.start_date,
         endDate: e.end_date
-      }));
-      setEvents(mappedEvents as CalendarEvent[]);
-    }
-  }
+      })) as CalendarEvent[];
+    },
+    enabled: !!user
+  });
+
+  // Mutations
+  const saveMutation = useMutation({
+    mutationFn: async (eventData: any) => {
+      if (editingEvent) {
+        const { error } = await supabase.from('events').update(eventData).eq('id', editingEvent.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('events').insert([eventData]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      closeModal();
+    },
+    onError: (error: any) => alert("Error saving event: " + error.message)
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('events').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      closeModal();
+    },
+    onError: (error: any) => alert("Error deleting event: " + error.message)
+  });
 
   const handleLogout = async () => {
     localStorage.removeItem("dev_bypass");
     await supabase.auth.signOut();
+    queryClient.clear();
     router.push("/login");
   };
 
@@ -260,7 +137,6 @@ export default function Calendar() {
 
     events.forEach(event => {
       const start = event.startDate.replace(/-/g, "");
-      const end = (event.endDate || event.startDate).replace(/-/g, "");
 
       let dtStartValue = "";
       let dtEndValue = "";
@@ -317,52 +193,19 @@ export default function Calendar() {
     e.preventDefault();
     if (!newEvent.title || !newEvent.startDate || !user) return;
 
-    const eventData = {
+    saveMutation.mutate({
       title: newEvent.title,
       start_date: newEvent.startDate,
       end_date: newEvent.endDate || newEvent.startDate,
       time: newEvent.time,
       color: newEvent.color,
       user_id: user.id
-    };
-
-    if (editingEvent) {
-      const { error } = await supabase
-        .from('events')
-        .update(eventData)
-        .eq('id', editingEvent.id);
-
-      if (error) {
-        alert("Error updating event: " + error.message);
-      } else {
-        await fetchEvents();
-        closeModal();
-      }
-    } else {
-      const { error } = await supabase
-        .from('events')
-        .insert([eventData]);
-
-      if (error) {
-        alert("Error adding event: " + error.message);
-      } else {
-        await fetchEvents();
-        closeModal();
-      }
-    }
+    });
   };
 
-  const deleteEvent = async (id: string) => {
-    const { error } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      alert("Error deleting event: " + error.message);
-    } else {
-      setEvents(events.filter(e => e.id !== id));
-      closeModal();
+  const deleteEvent = (id: string) => {
+    if (confirm("Are you sure you want to delete this event?")) {
+      deleteMutation.mutate(id);
     }
   };
 
@@ -384,7 +227,7 @@ export default function Calendar() {
     setNewEvent({ title: "", startDate: "", endDate: "", time: "", color: COLORS[0] });
   };
 
-  if (loading) return <div className={styles.loading}>Loading Calendar...</div>;
+  if (authLoading || eventsLoading) return <div className={styles.loading}>Loading Calendar...</div>;
 
   const weeks = getWeeks(year, month);
 
@@ -483,7 +326,10 @@ export default function Calendar() {
                       backgroundColor: event.color
                     }}
                     title={`${event.title}${event.time ? ` at ${formatTime12h(event.time)}` : ""}`}
-                    onClick={() => openEditModal(event)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDetailEvent(event);
+                    }}
                   >
                     {isStart && event.time && <span className={styles.eventTime}>{formatTime12h(event.time)}</span>}
                     {isStart && <span className={styles.eventTitle}>{event.title}</span>}
@@ -577,6 +423,54 @@ export default function Calendar() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {detailEvent && (
+        <div className={styles.modalOverlay} onClick={() => setDetailEvent(null)}>
+          <div className={styles.detailCard} onClick={e => e.stopPropagation()}>
+            <div className={styles.detailHeader} style={{ borderLeft: `4px solid ${detailEvent.color}` }}>
+              <h3>{detailEvent.title}</h3>
+              <button className={styles.btnClose} onClick={() => setDetailEvent(null)}>&times;</button>
+            </div>
+            <div className={styles.detailBody}>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Date:</span>
+                <span>
+                  {format(parseISO(detailEvent.startDate), "PPP")}
+                  {detailEvent.endDate && detailEvent.endDate !== detailEvent.startDate && (
+                    <> - {format(parseISO(detailEvent.endDate), "PPP")}</>
+                  )}
+                </span>
+              </div>
+              {detailEvent.time && (
+                <div className={styles.detailRow}>
+                  <span className={styles.detailLabel}>Time:</span>
+                  <span>{formatTime12h(detailEvent.time)}</span>
+                </div>
+              )}
+            </div>
+            <div className={styles.detailActions}>
+              <button 
+                className={styles.btnSecondary} 
+                onClick={() => {
+                  openEditModal(detailEvent);
+                  setDetailEvent(null);
+                }}
+              >
+                Edit
+              </button>
+              <button 
+                className={styles.btnDelete} 
+                onClick={() => {
+                  deleteEvent(detailEvent.id);
+                  setDetailEvent(null);
+                }}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
