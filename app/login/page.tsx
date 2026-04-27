@@ -95,6 +95,21 @@ export default function LoginPage() {
           <button type="submit" className={styles.btnPrimary} disabled={loading}>
             {loading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}
           </button>
+          
+          {process.env.NODE_ENV === "development" && (
+            <button 
+              type="button"
+              onClick={() => {
+                localStorage.setItem("dev_bypass", "true");
+                router.push("/");
+                router.refresh();
+              }}
+              className={styles.btnSecondary}
+              style={{ marginTop: '0.75rem', width: '100%', background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}
+            >
+              🚧 Bypass Login (Dev Only)
+            </button>
+          )}
         </form>
 
         <p className={styles.toggleText}>

@@ -199,7 +199,17 @@ export default function Calendar() {
   // Check auth and load events
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await supabase.auth.getUser();
+      let { data: { user } } = await supabase.auth.getUser();
+      
+      // Development bypass logic
+      if (!user && process.env.NODE_ENV === 'development' && typeof window !== 'undefined' && localStorage.getItem('dev_bypass')) {
+        user = { 
+          id: '00000000-0000-0000-0000-000000000000', 
+          email: 'dev@local.host',
+          user_metadata: { full_name: 'Developer' }
+        } as any;
+      }
+      
       setUser(user);
       
       if (!user) {
@@ -231,6 +241,7 @@ export default function Calendar() {
   }
 
   const handleLogout = async () => {
+    localStorage.removeItem("dev_bypass");
     await supabase.auth.signOut();
     router.push("/login");
   };
