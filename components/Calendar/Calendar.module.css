@@ -1,6 +1,7 @@
 .container {
   background: var(--background);
   padding: 0.5rem;
+  width: 100%;
   max-width: 100%;
   margin: 0 auto;
   flex: 1;
@@ -120,6 +121,7 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  width: 100%;
   min-height: 0;
   overflow: hidden; /* Disable scrolling to force fit */
 }
@@ -145,7 +147,7 @@
 .week {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: 28px repeat(29, 1fr); /* Row 1 for numbers, 2-5 for all-day, 6-30 for hours */
+  grid-template-rows: 28px 1fr;
   position: relative;
   flex: 1; /* This ensures each week expands to fill available space */
   min-height: 0;

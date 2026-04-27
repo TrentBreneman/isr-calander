@@ -48,9 +48,10 @@ function getWeeks(year: number, month: number) {
     });
   }
   
-  // Padding for end of month
-  const remaining = (7 - (days.length % 7)) % 7;
-  for (let i = 1; i <= remaining; i++) {
+  // Padding for end of month to always show 6 weeks (42 days)
+  const totalDaysNeeded = 42;
+  const currentCount = days.length;
+  for (let i = 1; i <= totalDaysNeeded - currentCount; i++) {
     days.push({
       date: new Date(year, month + 1, i),
       isCurrentMonth: false
