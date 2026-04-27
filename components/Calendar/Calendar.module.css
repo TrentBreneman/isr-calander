@@ -147,8 +147,8 @@
   grid-template-columns: repeat(7, 1fr);
   grid-template-rows: 28px repeat(29, 1fr); /* Row 1 for numbers, 2-5 for all-day, 6-30 for hours */
   position: relative;
-  flex: 1;
-  min-height: 0; /* Allow shrinking to fit screen */
+  flex: 1; /* This ensures each week expands to fill available space */
+  min-height: 0;
 }
 
 .dayBackground {
