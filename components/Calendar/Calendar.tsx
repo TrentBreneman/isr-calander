@@ -421,7 +421,7 @@ export default function Calendar() {
                       className={`${styles.dayBackground} ${isToday ? styles.today : ""} ${!day.isCurrentMonth ? styles.notCurrentMonth : ""}`}
                       style={{ gridColumn: dayIdx + 1 }}
                     />
-                    <div className={`${styles.dayNumberContainer} ${!day.isCurrentMonth ? styles.notCurrentMonth : ""}`} style={{ gridColumn: dayIdx + 1 }}>
+                    <div className={`${styles.dayNumberContainer} ${!day.isCurrentMonth ? styles.notCurrentMonth : ""} ${isToday ? styles.today : ""}`} style={{ gridColumn: dayIdx + 1 }}>
                       {day.isCurrentMonth && <span className={styles.dayNumber}>{day.date.getDate()}</span>}
                     </div>
                     {day.isCurrentMonth && (
