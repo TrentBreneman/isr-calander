@@ -31,13 +31,13 @@
     "@tanstack/react-query": "^5.100.5",
     "date-fns": "^4.1.0",
     "lucide-react": "^1.7.0",
-    "next": "^16.1.6",
+    "next": "^15.1.0",
     "pdf-lib": "^1.17.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "sharp": "^0.34.5",
     "tesseract.js": "^7.0.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
@@ -47,10 +47,17 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "eslint": "^9.39.3",
-    "eslint-config-next": "^16.1.6",
-    "ftp-deploy": "^2.4.7",
+    "eslint-config-next": "^15.1.0",
+    "ftp-deploy": "^2.4.3",
     "jsdom": "^29.1.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
+  },
+  "overrides": {
+    "braces": "^3.0.3",
+    "postcss": "^8.5.10",
+    "json5": "^2.2.3",
+    "cookie": "^0.7.0",
+    "minimatch": "^9.0.5"
   }
 }

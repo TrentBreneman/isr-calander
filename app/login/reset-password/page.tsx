@@ -25,7 +25,7 @@ export default function ResetPasswordPage() {
     });
 
     // Listen for the recovery event from Supabase
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       console.log("Auth event on reset page:", event);
       
       if (event === "PASSWORD_RECOVERY") {
