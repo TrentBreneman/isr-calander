@@ -136,24 +136,23 @@ export default function Calendar() {
     ].join("\r\n") + "\r\n";
 
     events.forEach(event => {
-      const start = event.startDate.replace(/-/g, "");
-
       let dtStartValue = "";
       let dtEndValue = "";
 
       if (event.time) {
-        const timeStr = event.time.replace(":", "") + "00";
-        dtStartValue = `:${start}T${timeStr}`;
-        const startDateObj = new Date(event.startDate + "T" + event.time);
+        // Timed event: convert to UTC for reliability
+        const startDateObj = new Date(`${event.startDate}T${event.time}`);
         const endDateObj = new Date(startDateObj.getTime() + 60 * 60 * 1000);
-        const endYear = endDateObj.getFullYear();
-        const endMonth = String(endDateObj.getMonth() + 1).padStart(2, "0");
-        const endDay = String(endDateObj.getDate()).padStart(2, "0");
-        const endHour = String(endDateObj.getHours()).padStart(2, "0");
-        const endMin = String(endDateObj.getMinutes()).padStart(2, "0");
-        dtEndValue = `:${endYear}${endMonth}${endDay}T${endHour}${endMin}00`;
+        
+        const formatUTC = (date: Date) => date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+        
+        dtStartValue = `:${formatUTC(startDateObj)}`;
+        dtEndValue = `:${formatUTC(endDateObj)}`;
       } else {
+        // All-day event: use VALUE=DATE (floating, as per standard)
+        const start = event.startDate.replace(/-/g, "");
         dtStartValue = `;VALUE=DATE:${start}`;
+        
         const endDateObj = new Date(event.endDate || event.startDate);
         endDateObj.setDate(endDateObj.getDate() + 1);
         const endYear = endDateObj.getFullYear();

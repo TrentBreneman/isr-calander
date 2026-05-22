@@ -24,8 +24,8 @@ export class PDFGenerator {
 
   checkPageBreak() {
     if (this.y < 50) {
-      this.addPage();
       this.drawPageFooter();
+      this.addPage();
       return true;
     }
     return false;
@@ -41,6 +41,10 @@ export class PDFGenerator {
       size: 10,
       color: rgb(0.5, 0.5, 0.5),
     });
+  }
+
+  finalize() {
+    this.drawPageFooter();
   }
 
   async drawHeader(headerText: string, logoPngBuffer: Buffer) {

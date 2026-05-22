@@ -1,5 +1,6 @@
 import Calendar from "@/components/Calendar";
 import Logo from "@/components/Logo";
+import ToolsMenu from "@/components/ToolsMenu";
 import styles from "./page.module.css";
 
 export default function Home() {
@@ -13,6 +14,7 @@ export default function Home() {
         <p>Stay in sync with the team.</p>
       </header>
       <Calendar />
+      <ToolsMenu />
     </main>
   );
 }

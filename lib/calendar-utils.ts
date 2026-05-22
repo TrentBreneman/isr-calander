@@ -100,6 +100,7 @@ export function layoutEventsForWeek(events: CalendarEvent[], weekDays: {date: Da
       if (isMulti || !event.time) {
         // Multi-day or All-day: Use slots at the top (Rows 2-5)
         let slot = 0;
+        let pushed = false;
         while (slot < 4) {
           let isFree = true;
           for (let c = startCol; c <= endCol; c++) {
@@ -119,12 +120,13 @@ export function layoutEventsForWeek(events: CalendarEvent[], weekDays: {date: Da
               span: (endCol - startCol) + 1,
               gridRow: slot + 2
             });
+            pushed = true;
             break;
           }
           slot++;
         }
         // Fallback for many all-day events
-        if (layout.length > 0 && layout[layout.length - 1].event.id !== event.id) {
+        if (!pushed) {
           layout.push({ event, startCol: startCol + 1, span: (endCol - startCol) + 1, gridRow: 5 });
         }
       } else {
