@@ -44,16 +44,20 @@ export default function BusinessCardScanner({ onClose }: BusinessCardScannerProp
   const processImage = async (imageSrc: string) => {
     setIsProcessing(true);
     try {
+      console.log("Starting OCR with Tesseract...");
       const { data: { text } } = await Tesseract.recognize(imageSrc, 'eng', {
-        logger: m => console.log(m)
+        logger: m => console.log("Tesseract Progress:", m)
       });
 
-      console.log("OCR Text:", text);
+      console.log("OCR Text Extracted:", text);
+      if (!text || text.trim().length === 0) {
+        throw new Error("No text could be extracted from this image.");
+      }
       const extracted = extractData(text);
       setData(extracted);
-    } catch (error) {
+    } catch (error: any) {
       console.error("OCR Error:", error);
-      alert("Failed to process image. Please try again.");
+      alert(`Failed to process image: ${error.message || "Unknown error"}. Please try again.`);
     } finally {
       setIsProcessing(false);
     }

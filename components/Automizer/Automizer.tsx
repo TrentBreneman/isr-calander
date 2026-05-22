@@ -66,16 +66,19 @@ export default function Automizer({ onClose }: AutomizerProps) {
       const arrayBuffer = await file.arrayBuffer();
       setProgress(40);
       
+      console.log("Loading PDF...");
       const pdfDoc = await PDFDocument.load(arrayBuffer, { ignoreEncryption: true });
       setProgress(60);
       
       const pageCount = pdfDoc.getPageCount();
+      console.log(`PDF loaded with ${pageCount} pages.`);
       if (pageCount === 0) {
         throw new Error("The PDF has no pages.");
       }
 
       // We can apply any "automation" or "formatting" logic here in the future
       // For now, we save it with optimized streams for compatibility
+      console.log("Saving PDF...");
       const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
       setProgress(90);
 
@@ -86,9 +89,10 @@ export default function Automizer({ onClose }: AutomizerProps) {
       setDownloadUrl(url);
       setFileName(`formatted-${file.name}`);
       setProgress(100);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to process PDF. Please try again.");
+      console.log("PDF processed successfully.");
+    } catch (err: any) {
+      console.error("Automizer Error:", err);
+      setError(`Failed to process PDF: ${err.message || "Unknown error"}. Please try again.`);
     } finally {
       setIsProcessing(false);
     }
