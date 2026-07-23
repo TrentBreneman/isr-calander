@@ -22,7 +22,6 @@ import type {
 import GauntletReview from './GauntletReview';
 import HitchhikersReview from './HitchhikersReview';
 import ValidationPanel from './ValidationPanel';
-import GrammarPanel from './GrammarPanel';
 
 // ─── Lazy imports for heavy modules ───────────────────────────────────────────
 async function runParse(workProduct: WorkProductType, text: string, metadata: DocumentMetadata) {
@@ -492,7 +491,7 @@ export default function Automizer({ onClose }: AutomizerProps) {
                   {sourceText.trim().split(/\s+/).length.toLocaleString()} words detected.
                   {process.env.NEXT_PUBLIC_GEMINI_API_KEY
                     ? ' AI-assisted parsing is active for ambiguous sections.'
-                    : ' Deterministic parsing only. Add NEXT_PUBLIC_GEMINI_API_KEY to enable AI fallback.'}
+                    : ''}
                 </span>
               </div>
             )}
@@ -565,30 +564,27 @@ export default function Automizer({ onClose }: AutomizerProps) {
 
       case 5:
         return (
-          <div className={styles.reviewLayout}>
-            <div className={styles.reviewMain}>
-              {document?.documentType === 'gauntlet' && (
-                <GauntletReview
-                  document={document}
-                  onChange={(updated) => setDocument(updated)}
-                />
-              )}
-              {document?.documentType === 'hitchhikers-guide' && (
-                <HitchhikersReview
-                  document={document}
-                  onChange={(updated) => setDocument(updated)}
-                />
-              )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
+            <div className={styles.reviewLayout}>
+              <div className={styles.reviewMain}>
+                {document?.documentType === 'gauntlet' && (
+                  <GauntletReview
+                    document={document}
+                    onChange={(updated) => setDocument(updated)}
+                  />
+                )}
+                {document?.documentType === 'hitchhikers-guide' && (
+                  <HitchhikersReview
+                    document={document}
+                    onChange={(updated) => setDocument(updated)}
+                  />
+                )}
+              </div>
+              <div className={styles.reviewSidebar}>
+                <ValidationPanel errors={errors} warnings={warnings} />
+              </div>
             </div>
-            <div className={styles.reviewSidebar}>
-              <ValidationPanel errors={errors} warnings={warnings} />
-              <GrammarPanel
-                suggestions={grammarSuggestions}
-                onAccept={acceptSuggestion}
-                onReject={rejectSuggestion}
-                onAcceptAll={acceptAllSuggestions}
-              />
-            </div>
+            {generateError && <div className={styles.errorMsg} style={{ marginTop: 'auto' }}>{generateError}</div>}
           </div>
         );
 
