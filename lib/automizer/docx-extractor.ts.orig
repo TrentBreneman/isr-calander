@@ -8,7 +8,6 @@
  */
 export async function extractDocxText(file: File): Promise<string> {
   // Dynamic import so mammoth only loads when needed
-  // @ts-ignore
   const mammoth = await import('mammoth/mammoth.browser');
 
   const arrayBuffer = await file.arrayBuffer();

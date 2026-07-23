@@ -1,17 +1,16 @@
 "use client";
 
-import React, { useState, useRef, useCallback, DragEvent } from 'react';
+import React, { useState, useRef, DragEvent } from 'react';
 import {
   X, FileText, Map, ChevronRight, ChevronLeft, Upload,
   Loader2, CheckCircle, Download, FileDown, Sparkles, Cpu,
-  AlertCircle, Info,
+  Info,
 } from 'lucide-react';
 import styles from './Automizer.module.css';
 
 import type {
   WorkProductType,
   OutputFormat,
-  CorrectionMode,
   DocumentMetadata,
   AutomizerDocument,
   GauntletDocument,
@@ -223,7 +222,7 @@ export default function Automizer({ onClose }: AutomizerProps) {
 
       if (fmt === 'pdf' || fmt === 'both') {
         const pdfBytes = await generatePDF(document);
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
         setPdfUrl(URL.createObjectURL(blob));
       }
 
@@ -544,7 +543,7 @@ export default function Automizer({ onClose }: AutomizerProps) {
                 <div className={styles.analyzeResultsTitle}>Parse Results</div>
                 <div className={styles.analyzeResultsStat}>
                   <span>Challenges detected</span>
-                  <span className={`${styles.analyzeResultsValue} ${analyzeOkCount}`}>{totalChallenges}</span>
+                  <span className={`${styles.analyzeResultsValue} ${styles.analyzeOkCount}`}>{totalChallenges}</span>
                 </div>
                 <div className={styles.analyzeResultsStat}>
                   <span>Errors</span>

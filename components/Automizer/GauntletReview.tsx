@@ -14,7 +14,7 @@ interface ChallengeCardProps {
   challenge: GauntletChallenge;
   sectionIndex: number;
   challengeIndex: number;
-  onChange: (updated: GauntletChallenge) => void;
+  onChange: (updated: import("@/lib/automizer/types").GauntletChallenge) => void;
   onRemove: () => void;
 }
 
