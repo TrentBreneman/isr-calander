@@ -179,10 +179,11 @@ export default function Automizer({ onClose }: AutomizerProps) {
     const name = file.name.toLowerCase();
     if (
       !name.endsWith(".docx") &&
+      !name.endsWith(".pdf") &&
       !name.endsWith(".txt") &&
       !name.endsWith(".md")
     ) {
-      setAnalyzeError("Please upload a .docx, .txt, or .md file.");
+      setAnalyzeError("Please upload a .docx, .pdf, .txt, or .md file.");
       return;
     }
     setUploadedFile(file);
@@ -556,7 +557,7 @@ export default function Automizer({ onClose }: AutomizerProps) {
                   Drag and drop your file here, or click to browse
                 </p>
                 <p className={styles.uploadDropZoneFormats}>
-                  Supported: .docx, .txt, .md
+                  Supported: .docx, .pdf, .txt, .md
                 </p>
                 {uploadedFile && (
                   <div className={styles.uploadedFileName}>
@@ -568,7 +569,7 @@ export default function Automizer({ onClose }: AutomizerProps) {
                   type="file"
                   ref={fileInputRef}
                   className={styles.hiddenInput}
-                  accept=".docx,.txt,.md"
+                  accept=".docx,.pdf,.txt,.md"
                   onChange={(e) =>
                     e.target.files && handleFiles(e.target.files)
                   }
@@ -585,7 +586,9 @@ export default function Automizer({ onClose }: AutomizerProps) {
                 <Info size={13} />
                 <span>
                   {sourceText.trim().split(/\s+/).length.toLocaleString()} words
-                  detected.
+                  detected from your raw source material. The automizer will
+                  turn this into a finished work product you can review and
+                  export as PDF or DOCX.
                   {process.env.NEXT_PUBLIC_GEMINI_API_KEY
                     ? " AI-assisted parsing is active for ambiguous sections."
                     : ""}

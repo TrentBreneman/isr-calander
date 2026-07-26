@@ -259,6 +259,115 @@ export function parseGauntlet(
   return { document, errors, warnings, ambiguousBlocks };
 }
 
+function buildFallbackHitchhikersGuide(
+  text: string,
+  metadata: DocumentMetadata,
+): Partial<HitchhikersGuide> {
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const sections: Partial<
+    Record<"I" | "II" | "III" | "IV" | "V" | "VI" | "VII" | "VIII" | "IX", any>
+  > = {};
+  let currentSection: keyof typeof sections | null = null;
+  let currentSubsection: {
+    label: string;
+    content: string;
+    points: string[];
+  } | null = null;
+  let currentContent: string[] = [];
+
+  const flushSubsection = () => {
+    if (!currentSection || !currentSubsection) return;
+    const section = sections[currentSection] || {
+      number: currentSection,
+      title: "",
+      subsections: [],
+    };
+    section.subsections.push(currentSubsection);
+    sections[currentSection] = section;
+    currentSubsection = null;
+    currentContent = [];
+  };
+
+  for (const line of lines) {
+    const sectionMatch = line.match(
+      /^(IX|VIII|VII|VI|V|IV|III|II|I)(?:\.|:)?\s*(.*)$/i,
+    );
+    if (sectionMatch) {
+      flushSubsection();
+      const sectionNumber =
+        sectionMatch[1].toUpperCase() as keyof typeof sections;
+      currentSection = sectionNumber;
+      const title = sectionMatch[2].trim();
+      sections[sectionNumber] = {
+        number: sectionNumber,
+        title: title || "Section",
+        subsections: [],
+      };
+      continue;
+    }
+
+    const subsectionMatch = line.match(/^([A-Z])(?:[.):-]|\.)\s*(.*)$/);
+    if (subsectionMatch && currentSection) {
+      flushSubsection();
+      currentSubsection = {
+        label: subsectionMatch[1].toUpperCase(),
+        content: subsectionMatch[2].trim(),
+        points: [],
+      };
+      currentContent = [];
+      continue;
+    }
+
+    if (!currentSection) continue;
+
+    if (line.match(/^\d+[.)]\s+/) && currentSubsection) {
+      currentSubsection.points.push(line.replace(/^\d+[.)]\s*/, ""));
+      continue;
+    }
+
+    if (currentSubsection) {
+      const cleanedLine = line.replace(/^[-*]\s*/, "");
+      currentSubsection.content = currentSubsection.content
+        ? `${currentSubsection.content} ${cleanedLine}`
+        : cleanedLine;
+    }
+  }
+
+  flushSubsection();
+
+  const challenges = [
+    {
+      id: "hg-challenge-1",
+      title: metadata.title || "Imported Hitchhiker's Guide",
+      sections: Object.fromEntries(
+        Object.entries(sections).map(([key, section]) => [
+          key,
+          {
+            number: key,
+            title: section.title || "Section",
+            subsections: (section.subsections || []).filter(Boolean),
+          },
+        ]),
+      ),
+    },
+  ];
+
+  return {
+    documentType: "hitchhikers-guide",
+    metadata: {
+      title: metadata.title || "Hitchhiker’s Guide",
+      headerTitle: metadata.headerTitle || "iSolvRisk - Hitchhiker’s Guide",
+      date: metadata.date || "July 2026",
+      author: metadata.author || "iSolvRisk Inc.",
+    },
+    challenges,
+  };
+}
+
 export async function parseHitchhikersGuide(
   text: string,
   metadata: DocumentMetadata,
@@ -273,22 +382,7 @@ export async function parseHitchhikersGuide(
       message: "Source text is empty for Hitchhiker's Guide.",
     });
     return {
-      document: {
-        documentType: "hitchhikers-guide",
-        metadata: {
-          title: metadata.title || "Hitchhiker’s Guide",
-          headerTitle: metadata.headerTitle || "iSolvRisk - Hitchhiker’s Guide",
-          date: metadata.date || "July 2026",
-          author: metadata.author || "iSolvRisk Inc.",
-        },
-        challenges: [
-          {
-            id: "hg-challenge-1",
-            title: "Default Challenge Guide",
-            sections: {},
-          },
-        ],
-      },
+      document: buildFallbackHitchhikersGuide("", metadata),
       errors,
       warnings,
       ambiguousBlocks,
@@ -305,27 +399,13 @@ export async function parseHitchhikersGuide(
     } catch {
       warnings.push({
         code: "HG_AI_FALLBACK",
-        message: "AI parsing failed, falling back to default structure.",
+        message:
+          "AI parsing failed, falling back to local structure extraction.",
       });
     }
   }
 
-  const document: Partial<HitchhikersGuide> = {
-    documentType: "hitchhikers-guide",
-    metadata: {
-      title: metadata.title || "Hitchhiker’s Guide",
-      headerTitle: metadata.headerTitle || "iSolvRisk - Hitchhiker’s Guide",
-      date: metadata.date || "July 2026",
-      author: metadata.author || "iSolvRisk Inc.",
-    },
-    challenges: [
-      {
-        id: "hg-challenge-1",
-        title: "Default Challenge Guide",
-        sections: {},
-      },
-    ],
-  };
+  const document = buildFallbackHitchhikersGuide(text, metadata);
 
   return { document, errors, warnings, ambiguousBlocks };
 }
