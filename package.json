@@ -36,12 +36,13 @@
     "file-saver": "^2.0.5",
     "lucide-react": "^1.7.0",
     "mammoth": "^1.12.0",
-    "next": "^15.1.0",
+    "next": "^14.2.35",
+    "next": "^16.2.12",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.1.200",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.3",
     "tesseract.js": "^7.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz"
   },
@@ -52,18 +53,12 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
-    "eslint": "^9.39.3",
-    "eslint-config-next": "^15.1.0",
-    "ftp-deploy": "^2.4.3",
+    "eslint": "^10.8.0",
+    "eslint-config-next": "^16.2.10",
+    "ftp-deploy": "^1.2.0",
     "jsdom": "^29.1.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
   },
-  "overrides": {
-    "braces": "^3.0.3",
-    "postcss": "^8.5.10",
-    "json5": "^2.2.3",
-    "cookie": "^0.7.0",
-    "minimatch": "^9.0.5"
-  }
+  "overrides": {}
 }

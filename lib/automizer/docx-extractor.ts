@@ -33,7 +33,9 @@ export async function extractPdfText(file: File): Promise<string> {
   const pdfjs = await import("pdfjs-dist");
   const arrayBuffer = await file.arrayBuffer();
 
-  const loadingTask = pdfjs.getDocument({ data: arrayBuffer });
+  const loadingTask = pdfjs.getDocument({
+    data: arrayBuffer,
+  } as never);
   const pdf = await loadingTask.promise;
 
   const pages: string[] = [];
@@ -41,7 +43,13 @@ export async function extractPdfText(file: File): Promise<string> {
     const page = await pdf.getPage(index);
     const content = await page.getTextContent();
     const text = content.items
-      .map((item: { str?: string } | undefined) => item?.str ?? "")
+      .map((item) => {
+        // Check if the item is a TextItem (which has a 'str' property)
+        if ("str" in item && typeof item.str === "string") {
+          return item.str;
+        }
+        return "";
+      })
       .join(" ");
     pages.push(text.trim());
   }

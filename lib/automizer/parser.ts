@@ -277,7 +277,6 @@ function buildFallbackHitchhikersGuide(
     content: string;
     points: string[];
   } | null = null;
-  let currentContent: string[] = [];
 
   const flushSubsection = () => {
     if (!currentSection || !currentSubsection) return;
@@ -289,7 +288,18 @@ function buildFallbackHitchhikersGuide(
     section.subsections.push(currentSubsection);
     sections[currentSection] = section;
     currentSubsection = null;
-    currentContent = [];
+  };
+
+  const ensureSubsection = (label: string, content = "") => {
+    if (!currentSection) return;
+    if (!currentSubsection) {
+      currentSubsection = { label, content, points: [] };
+      return;
+    }
+    if (currentSubsection.label !== label) {
+      flushSubsection();
+      currentSubsection = { label, content, points: [] };
+    }
   };
 
   for (const line of lines) {
@@ -310,32 +320,35 @@ function buildFallbackHitchhikersGuide(
       continue;
     }
 
-    const subsectionMatch = line.match(/^([A-Z])(?:[.):-]|\.)\s*(.*)$/);
-    if (subsectionMatch && currentSection) {
-      flushSubsection();
-      currentSubsection = {
-        label: subsectionMatch[1].toUpperCase(),
-        content: subsectionMatch[2].trim(),
-        points: [],
-      };
-      currentContent = [];
+    if (!currentSection) continue;
+
+    const subsectionMatch = line.match(/^([A-Z])(?:[.):-])\s*(.*)$/i);
+    if (subsectionMatch) {
+      const label = subsectionMatch[1].toUpperCase();
+      const content = subsectionMatch[2].trim();
+      ensureSubsection(label, content);
       continue;
     }
-
-    if (!currentSection) continue;
 
     if (line.match(/^\d+[.)]\s+/) && currentSubsection) {
       currentSubsection.points.push(line.replace(/^\d+[.)]\s*/, ""));
       continue;
     }
 
-    if (currentSubsection) {
-      const cleanedLine = line.replace(/^[-*]\s*/, "");
-      currentSubsection.content = currentSubsection.content
-        ? `${currentSubsection.content} ${cleanedLine}`
-        : cleanedLine;
+    const cleanedLine = line.replace(/^[-*]\s*/, "").trim();
+    if (!cleanedLine) continue;
+
+    if (!currentSubsection) {
+      currentSubsection = { label: "A", content: cleanedLine, points: [] };
+      continue;
     }
+
+    currentSubsection.content = currentSubsection.content
+      ? `${currentSubsection.content} ${cleanedLine}`
+      : cleanedLine;
   }
+
+  flushSubsection();
 
   flushSubsection();
 
