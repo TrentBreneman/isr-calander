@@ -1,83 +1,55 @@
-// lib/automizer/types.ts
-// Canonical type definitions for the Gauntlet Document Automizer
+export type WorkProductType = "gauntlet" | "hitchhikers-guide";
 
-export type WorkProductType = 'gauntlet' | 'hitchhikers-guide';
-export type OutputFormat = 'pdf' | 'docx' | 'both';
-export type CorrectionMode = 'formatting-only' | 'grammar-mechanics' | 'grammar-style';
+export type OutputFormat = "pdf" | "docx" | "both";
 
-// ─────────────────────────────────────────────
-// Document Metadata
-// ─────────────────────────────────────────────
+export type HGSectionNumber =
+  | "I"
+  | "II"
+  | "III"
+  | "IV"
+  | "V"
+  | "VI"
+  | "VII"
+  | "VIII"
+  | "IX";
+
+export const ROMAN_ORDER: HGSectionNumber[] = [
+  "I",
+  "II",
+  "III",
+  "IV",
+  "V",
+  "VI",
+  "VII",
+  "VIII",
+  "IX",
+];
+
+export const HG_SECTION_TITLES: Record<HGSectionNumber, string> = {
+  I: "Scenario Summary and Decision Context",
+  II: "Why the Goal and Objective Are Correct",
+  III: "Why the Alternate Goals Are Incorrect",
+  IV: "Why the Relevant Factors Are Correct",
+  V: "Why the Alternate Factors Are Incorrect",
+  VI: "Why the Target Outcome Is Correct",
+  VII: "Why the Possible Outcomes Are Incorrect",
+  VIII: "Why the Alternate Outcome Options Are Incorrect",
+  IX: "Facilitator Notes on Strong Reasoning",
+};
+
 export interface DocumentMetadata {
-  title: string;
-  headerTitle: string;
-  date: string;           // e.g. "July 2026"
-  author: string;         // default "iSolvRisk Inc."
+  title?: string;
+  headerTitle?: string;
+  date?: string;
+  author?: string;
   client?: string;
-  companyOrGauntletName?: string;
-  logoAssetId?: string;   // path to logo asset
-  outputFormat: OutputFormat;
+  logoAssetId?: string;
 }
-
-// ─────────────────────────────────────────────
-// Gauntlet Types
-// ─────────────────────────────────────────────
-export interface ModelComponents {
-  goal: string;
-  relevantFactors: string[];
-  possibleOutcomes: string[];
-}
-
-export interface TargetOutcome {
-  name: string;
-  explanation: string;
-}
-
-export interface AlternateComponents {
-  goals: string[];
-  factors: string[];
-  outcomes: string[];
-}
-
-export interface Hints {
-  goalHints: string[];
-  factorHints: string[];
-  outcomeHints: string[];
-}
-
-export interface GauntletChallenge {
-  id: string;
-  title: string;
-  challengeType: 'standard' | 'walkthrough';
-  scenario: string[];
-  task: string;
-  modelComponents: ModelComponents;
-  targetOutcome: TargetOutcome;
-  alternateComponents: AlternateComponents;
-  hints: Hints;
-}
-
-export interface GauntletSection {
-  sectionTitle: string;
-  sectionType: 'company' | 'general';
-  challenges: GauntletChallenge[];
-}
-
-export interface GauntletDocument {
-  documentType: 'gauntlet';
-  metadata: DocumentMetadata;
-  sections: GauntletSection[];
-}
-
-// ─────────────────────────────────────────────
-// Hitchhiker's Guide Types
-// ─────────────────────────────────────────────
-export type HGSectionNumber = 'I' | 'II' | 'III' | 'IV' | 'V' | 'VI' | 'VII' | 'VIII' | 'IX';
 
 export interface HGSubsection {
-  label: string;       // e.g. "A", "B", "C"
+  label: string;
   content: string;
-  points: string[];    // numbered supporting points
+  points: string[];
 }
 
 export interface HGSection {
@@ -92,75 +64,63 @@ export interface HGChallenge {
   sections: Partial<Record<HGSectionNumber, HGSection>>;
 }
 
+export interface ParseError {
+  code: string;
+  message: string;
+  id?: string;
+  field?: string;
+}
+
 export interface HitchhikersGuide {
-  documentType: 'hitchhikers-guide';
+  documentType: "hitchhikers-guide";
   metadata: DocumentMetadata;
   challenges: HGChallenge[];
 }
 
-// ─────────────────────────────────────────────
-// Union for the canonical document
-// ─────────────────────────────────────────────
-export type AutomizerDocument = GauntletDocument | HitchhikersGuide;
-
-// ─────────────────────────────────────────────
-// Validation
-// ─────────────────────────────────────────────
-export type ErrorSeverity = 'error' | 'warning';
-
-export interface ParseError {
-  severity: ErrorSeverity;
-  code: string;
-  message: string;
-  challengeId?: string;
-  field?: string;
+export interface HGParseResult {
+  document: Partial<HitchhikersGuide>;
+  errors: ParseError[];
+  warnings: ParseError[];
+  ambiguousBlocks: string[];
 }
 
-// ─────────────────────────────────────────────
-// Grammar Suggestions
-// ─────────────────────────────────────────────
-export type GrammarSeverity = 'required' | 'recommended' | 'suggestion';
-
-export interface GrammarSuggestion {
+export interface GauntletChallengeModel {
   id: string;
-  original: string;
-  suggested: string;
-  reason: string;
-  severity: GrammarSeverity;
-  accepted?: boolean;   // undefined = pending, true = accepted, false = rejected
-  location: {
-    challengeId: string;
-    field: string;
-    paragraphIndex?: number;
+  title: string;
+  challengeType?: string;
+  scenario: string[];
+  task: string;
+  modelComponents: {
+    goal: string;
+    relevantFactors: string[];
+    possibleOutcomes: string[];
+  };
+  targetOutcome: {
+    name: string;
+    explanation: string;
+  };
+  alternateComponents: {
+    goals: string[];
+    factors: string[];
+    outcomes: string[];
+  };
+  hints: {
+    goalHints: string[];
+    factorHints: string[];
+    outcomeHints: string[];
   };
 }
 
-// ─────────────────────────────────────────────
-// Full Automizer State
-// ─────────────────────────────────────────────
-export interface AutomizerState {
-  step: 1 | 2 | 3 | 4 | 5 | 6;
-  workProduct: WorkProductType | null;
-  metadata: DocumentMetadata;
-  sourceText: string;
-  document: AutomizerDocument | null;
-  errors: ParseError[];
-  warnings: ParseError[];
-  grammarSuggestions: GrammarSuggestion[];
-  isAnalyzing: boolean;
-  isGenerating: boolean;
-  correctionMode: CorrectionMode;
+export interface GauntletSection {
+  sectionTitle: string;
+  sectionType: "company" | "standard";
+  challenges: GauntletChallengeModel[];
 }
 
-// HG section canonical titles
-export const HG_SECTION_TITLES: Record<HGSectionNumber, string> = {
-  I: 'Scenario Summary and Decision Context',
-  II: 'Why the Goal and Objective Are Correct',
-  III: 'Why the Alternate Goals Are Incorrect',
-  IV: 'Why the Relevant Factors Are Correct',
-  V: 'Why the Alternate Factors Are Incorrect',
-  VI: 'Why the Target Outcome Is Correct',
-  VII: 'Why the Possible Outcomes Are Incorrect',
-  VIII: 'Why the Alternate Outcome Options Are Incorrect',
-  IX: 'Facilitator Notes on Strong Reasoning',
-};
+export interface GauntletDocument {
+  documentType: "gauntlet";
+  metadata: DocumentMetadata;
+  sections: GauntletSection[];
+}
+
+export type AutomizerDocument = GauntletDocument | HitchhikersGuide;

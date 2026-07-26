@@ -1,20 +1,31 @@
 "use client";
 
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Plus, Trash2, GripVertical } from 'lucide-react';
-import type { GauntletDocument, GauntletChallenge } from '@/lib/automizer/types';
-import styles from './Automizer.module.css';
+import React, { useState } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Trash2,
+  GripVertical,
+} from "lucide-react";
+import type {
+  GauntletDocument,
+  GauntletChallengeModel,
+} from "@/lib/automizer/types";
+import styles from "./Automizer.module.css";
 
 interface GauntletReviewProps {
   document: GauntletDocument;
-  onChange: (doc: GauntletDocument) => void;
+  onChange: (doc: GauntletDocument) => void; // eslint-disable-line no-unused-vars
 }
 
 interface ChallengeCardProps {
-  challenge: GauntletChallenge;
+  challenge: GauntletChallengeModel;
   sectionIndex: number;
   challengeIndex: number;
-  onChange: (updated: import("@/lib/automizer/types").GauntletChallenge) => void;
+  onChange: (
+    updated: import("@/lib/automizer/types").GauntletChallengeModel, // eslint-disable-line no-unused-vars
+  ) => void;
   onRemove: () => void;
 }
 
@@ -24,9 +35,10 @@ function EditableList({
   placeholder,
 }: {
   items: string[];
-  onChange: (updated: string[]) => void;
+  onChange: (updated: string[]) => void; // eslint-disable-line no-unused-vars
   placeholder?: string;
 }) {
+  // 'updated' is a parameter in a type definition.
   return (
     <div className={styles.editableList}>
       {items.map((item, i) => (
@@ -54,7 +66,7 @@ function EditableList({
       ))}
       <button
         className={styles.addItemBtn}
-        onClick={() => onChange([...items, ''])}
+        onClick={() => onChange([...items, ""])}
       >
         <Plus size={13} /> Add
       </button>
@@ -63,9 +75,10 @@ function EditableList({
 }
 
 function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
+  // The 'updated' parameter in onChange is used.
   const [expanded, setExpanded] = useState(true);
 
-  const update = (patch: Partial<GauntletChallenge>) => {
+  const update = (patch: Partial<GauntletChallengeModel>) => {
     onChange({ ...challenge, ...patch });
   };
 
@@ -73,7 +86,10 @@ function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
 
   return (
     <div className={styles.challengeCard}>
-      <div className={styles.challengeCardHeader} onClick={() => setExpanded(!expanded)}>
+      <div
+        className={styles.challengeCardHeader}
+        onClick={() => setExpanded(!expanded)}
+      >
         <div className={styles.challengeCardTitle}>
           <GripVertical size={16} className={styles.dragHandle} />
           <input
@@ -88,7 +104,10 @@ function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
         <div className={styles.challengeCardActions}>
           <button
             className={styles.removeCardBtn}
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
             aria-label="Remove challenge"
           >
             <Trash2 size={14} />
@@ -104,9 +123,11 @@ function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
             <label className={styles.fieldLabel}>Scenario</label>
             <textarea
               className={styles.fieldTextarea}
-              value={challenge.scenario.join('\n\n')}
+              value={challenge.scenario.join("\n\n")}
               onChange={(e) =>
-                update({ scenario: e.target.value.split('\n\n').filter(Boolean) })
+                update({
+                  scenario: e.target.value.split("\n\n").filter(Boolean),
+                })
               }
               rows={5}
               placeholder="Enter the scenario text. Separate paragraphs with a blank line."
@@ -135,7 +156,12 @@ function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
               className={styles.fieldInput}
               value={challenge.modelComponents.goal}
               onChange={(e) =>
-                update({ modelComponents: { ...challenge.modelComponents, goal: e.target.value } })
+                update({
+                  modelComponents: {
+                    ...challenge.modelComponents,
+                    goal: e.target.value,
+                  },
+                })
               }
               placeholder="The single Goal/Objective"
             />
@@ -146,7 +172,12 @@ function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
             <EditableList
               items={challenge.modelComponents.relevantFactors}
               onChange={(items) =>
-                update({ modelComponents: { ...challenge.modelComponents, relevantFactors: items } })
+                update({
+                  modelComponents: {
+                    ...challenge.modelComponents,
+                    relevantFactors: items,
+                  },
+                })
               }
               placeholder="Add a factor..."
             />
@@ -157,7 +188,12 @@ function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
             <EditableList
               items={challenge.modelComponents.possibleOutcomes}
               onChange={(items) =>
-                update({ modelComponents: { ...challenge.modelComponents, possibleOutcomes: items } })
+                update({
+                  modelComponents: {
+                    ...challenge.modelComponents,
+                    possibleOutcomes: items,
+                  },
+                })
               }
               placeholder="Add an outcome..."
             />
@@ -173,12 +209,20 @@ function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
                 className={styles.fieldSelect}
                 value={challenge.targetOutcome.name}
                 onChange={(e) =>
-                  update({ targetOutcome: { ...challenge.targetOutcome, name: e.target.value } })
+                  update({
+                    targetOutcome: {
+                      ...challenge.targetOutcome,
+                      name: e.target.value,
+                    },
+                  })
                 }
               >
-                <option value="">— Select from Possible Outcomes —</option>
-                {targetOutcomeOptions.map((o, i) => (
-                  <option key={i} value={o}>{o}</option>
+                <option value="">— Select from Possible Outcomes —</option>{" "}
+                {/* The 'o' and 'i' parameters are used. */}
+                {targetOutcomeOptions.map((o: string, i: number) => (
+                  <option key={i} value={o}>
+                    {o}
+                  </option>
                 ))}
                 <option value="__custom__">Other (type below)</option>
               </select>
@@ -188,7 +232,12 @@ function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
                 className={styles.fieldInput}
                 value={challenge.targetOutcome.name}
                 onChange={(e) =>
-                  update({ targetOutcome: { ...challenge.targetOutcome, name: e.target.value } })
+                  update({
+                    targetOutcome: {
+                      ...challenge.targetOutcome,
+                      name: e.target.value,
+                    },
+                  })
                 }
                 placeholder="Enter target outcome (add Possible Outcomes above first)"
               />
@@ -196,12 +245,19 @@ function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
           </div>
 
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>Target Outcome Explanation</label>
+            <label className={styles.fieldLabel}>
+              Target Outcome Explanation
+            </label>
             <textarea
               className={styles.fieldTextarea}
               value={challenge.targetOutcome.explanation}
               onChange={(e) =>
-                update({ targetOutcome: { ...challenge.targetOutcome, explanation: e.target.value } })
+                update({
+                  targetOutcome: {
+                    ...challenge.targetOutcome,
+                    explanation: e.target.value,
+                  },
+                })
               }
               rows={4}
               placeholder="Explain why this is the target outcome..."
@@ -216,29 +272,48 @@ function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
             <EditableList
               items={challenge.alternateComponents.goals}
               onChange={(items) =>
-                update({ alternateComponents: { ...challenge.alternateComponents, goals: items } })
+                update({
+                  alternateComponents: {
+                    ...challenge.alternateComponents,
+                    goals: items,
+                  },
+                })
               }
               placeholder="Alternate goal..."
             />
           </div>
 
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>Alternate Factor Options</label>
+            <label className={styles.fieldLabel}>
+              Alternate Factor Options
+            </label>
             <EditableList
               items={challenge.alternateComponents.factors}
               onChange={(items) =>
-                update({ alternateComponents: { ...challenge.alternateComponents, factors: items } })
+                update({
+                  alternateComponents: {
+                    ...challenge.alternateComponents,
+                    factors: items,
+                  },
+                })
               }
               placeholder="Alternate factor..."
             />
           </div>
 
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel}>Alternate Outcome Options</label>
+            <label className={styles.fieldLabel}>
+              Alternate Outcome Options
+            </label>
             <EditableList
               items={challenge.alternateComponents.outcomes}
               onChange={(items) =>
-                update({ alternateComponents: { ...challenge.alternateComponents, outcomes: items } })
+                update({
+                  alternateComponents: {
+                    ...challenge.alternateComponents,
+                    outcomes: items,
+                  },
+                })
               }
               placeholder="Alternate outcome..."
             />
@@ -285,17 +360,20 @@ function ChallengeCard({ challenge, onChange, onRemove }: ChallengeCardProps) {
   );
 }
 
-export default function GauntletReview({ document: doc, onChange }: GauntletReviewProps) {
+export default function GauntletReview({
+  document: doc,
+  onChange,
+}: GauntletReviewProps) {
   const addChallenge = (sectionIndex: number) => {
     const updated = { ...doc };
     updated.sections[sectionIndex].challenges.push({
       id: `challenge-new-${Date.now()}`,
-      title: 'New Challenge',
-      challengeType: 'standard',
+      title: "New Challenge",
+      challengeType: "standard",
       scenario: [],
-      task: '',
-      modelComponents: { goal: '', relevantFactors: [], possibleOutcomes: [] },
-      targetOutcome: { name: '', explanation: '' },
+      task: "",
+      modelComponents: { goal: "", relevantFactors: [], possibleOutcomes: [] },
+      targetOutcome: { name: "", explanation: "" },
       alternateComponents: { goals: [], factors: [], outcomes: [] },
       hints: { goalHints: [], factorHints: [], outcomeHints: [] },
     });
@@ -307,9 +385,12 @@ export default function GauntletReview({ document: doc, onChange }: GauntletRevi
       {doc.sections.map((section, si) => (
         <div key={si} className={styles.reviewSection}>
           <div className={styles.reviewSectionHeader}>
-            <h4 className={styles.reviewSectionTitle}>{section.sectionTitle}</h4>
+            <h4 className={styles.reviewSectionTitle}>
+              {section.sectionTitle}
+            </h4>
             <span className={styles.reviewSectionCount}>
-              {section.challenges.length} challenge{section.challenges.length !== 1 ? 's' : ''}
+              {section.challenges.length} challenge
+              {section.challenges.length !== 1 ? "s" : ""}
             </span>
           </div>
 
@@ -326,9 +407,9 @@ export default function GauntletReview({ document: doc, onChange }: GauntletRevi
               }}
               onRemove={() => {
                 const newDoc = { ...doc };
-                newDoc.sections[si].challenges = newDoc.sections[si].challenges.filter(
-                  (_, idx) => idx !== ci
-                );
+                newDoc.sections[si].challenges = newDoc.sections[
+                  si
+                ].challenges.filter((_, idx) => idx !== ci);
                 onChange(newDoc);
               }}
             />

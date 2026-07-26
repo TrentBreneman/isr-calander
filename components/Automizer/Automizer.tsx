@@ -1,12 +1,22 @@
 "use client";
 
-import React, { useState, useRef, DragEvent } from 'react';
+import React, { useState, useRef, DragEvent } from "react";
 import {
-  X, FileText, Map, ChevronRight, ChevronLeft, Upload,
-  Loader2, CheckCircle, Download, FileDown, Sparkles, Cpu,
+  X,
+  FileText,
+  Map,
+  ChevronRight,
+  ChevronLeft,
+  Upload,
+  Loader2,
+  CheckCircle,
+  Download,
+  FileDown,
+  Sparkles,
+  Cpu,
   Info,
-} from 'lucide-react';
-import styles from './Automizer.module.css';
+} from "lucide-react";
+import styles from "./Automizer.module.css";
 
 import type {
   WorkProductType,
@@ -16,99 +26,111 @@ import type {
   GauntletDocument,
   HitchhikersGuide,
   ParseError,
-  GrammarSuggestion,
-} from '@/lib/automizer/types';
+} from "@/lib/automizer/types";
 
-import GauntletReview from './GauntletReview';
-import HitchhikersReview from './HitchhikersReview';
-import ValidationPanel from './ValidationPanel';
+import GauntletReview from "./GauntletReview";
+import HitchhikersReview from "./HitchhikersReview";
+import ValidationPanel from "./ValidationPanel";
 
-// ─── Lazy imports for heavy modules ───────────────────────────────────────────
-async function runParse(workProduct: WorkProductType, text: string, metadata: DocumentMetadata) {
-  const { parseGauntlet, parseHitchhikersGuide } = await import('@/lib/automizer/parser');
-  const { isAIAvailable, aiEnhanceGauntlet, aiEnhanceHitchhikersGuide } = await import('@/lib/automizer/ai-parser');
-  const { validateDocument } = await import('@/lib/automizer/validator');
+async function runParse(
+  workProduct: WorkProductType,
+  text: string,
+  metadata: DocumentMetadata,
+) {
+  const { parseGauntlet, parseHitchhikersGuide } =
+    await import("@/lib/automizer/parser");
+  const { isAIAvailable, aiEnhanceGauntlet } =
+    await import("@/lib/automizer/ai-parser");
+  const { validateDocument } = await import("@/lib/automizer/validator");
 
-  if (workProduct === 'gauntlet') {
+  if (workProduct === "gauntlet") {
     const result = parseGauntlet(text, metadata);
     const doc = result.document as GauntletDocument;
 
-    // AI enhancement if available
     if (isAIAvailable() && result.ambiguousBlocks.length > 0 && doc.sections) {
       for (const section of doc.sections) {
-        section.challenges = await aiEnhanceGauntlet(
-          section.challenges,
+        section.challenges = (await aiEnhanceGauntlet(
+          section.challenges as unknown as Parameters<
+            typeof aiEnhanceGauntlet
+          >[0],
           result.ambiguousBlocks,
-          metadata
-        );
+          metadata,
+        )) as unknown as typeof section.challenges;
       }
     }
 
-    const { errors, warnings } = validateDocument(doc as AutomizerDocument);
-    return { document: doc, errors: [...result.errors, ...errors], warnings: [...result.warnings, ...warnings] };
+    const { errors, warnings } = validateDocument(
+      doc as unknown as AutomizerDocument,
+    );
+    return {
+      document: doc as unknown as AutomizerDocument,
+      errors: [...result.errors, ...errors],
+      warnings: [...result.warnings, ...warnings],
+    };
   } else {
-    const result = parseHitchhikersGuide(text, metadata);
+    const result = await parseHitchhikersGuide(text, metadata);
     const doc = result.document as HitchhikersGuide;
 
-    if (isAIAvailable() && result.ambiguousBlocks.length > 0) {
-      doc.challenges = await aiEnhanceHitchhikersGuide(
-        doc.challenges,
-        result.ambiguousBlocks,
-        metadata
-      );
-    }
-
-    const { errors, warnings } = validateDocument(doc as AutomizerDocument);
-    return { document: doc, errors: [...result.errors, ...errors], warnings: [...result.warnings, ...warnings] };
+    const { errors, warnings } = validateDocument(
+      doc as unknown as AutomizerDocument,
+    );
+    return {
+      document: doc as unknown as AutomizerDocument,
+      errors: [...result.errors, ...errors],
+      warnings: [...result.warnings, ...warnings],
+    };
   }
 }
 
 async function generatePDF(doc: AutomizerDocument): Promise<Uint8Array> {
-  const { renderToPDF } = await import('@/lib/automizer/pdf-renderer');
+  const { renderToPDF } = await import("@/lib/automizer/pdf-renderer");
   return renderToPDF(doc);
 }
 
 async function generateDOCX(doc: AutomizerDocument): Promise<Blob> {
-  const { renderToDOCX } = await import('@/lib/automizer/docx-renderer');
+  const { renderToDOCX } = await import("@/lib/automizer/docx-renderer");
   return renderToDOCX(doc);
 }
 
 async function extractText(file: File): Promise<string> {
-  const { extractFileText } = await import('@/lib/automizer/docx-extractor');
+  const { extractFileText } = await import("@/lib/automizer/docx-extractor");
   return extractFileText(file);
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function currentMonth(): string {
   const d = new Date();
-  return d.toLocaleString('default', { month: 'long', year: 'numeric' });
+  return d.toLocaleString("default", { month: "long", year: "numeric" });
 }
 
-function makeDefaultMetadata(workProduct: WorkProductType | null): DocumentMetadata {
+function makeDefaultMetadata(
+  workProduct: WorkProductType | null,
+): DocumentMetadata & {
+  outputFormat: OutputFormat;
+  companyOrGauntletName?: string;
+} {
   return {
-    title: '',
+    title: "",
     headerTitle:
-      workProduct === 'hitchhikers-guide'
+      workProduct === "hitchhikers-guide"
         ? "iSolvRisk - Hitchhiker's Guide"
-        : 'iSolvRisk - Gauntlet Challenges',
+        : "iSolvRisk - Gauntlet Challenges",
     date: currentMonth(),
-    author: 'iSolvRisk Inc.',
-    client: '',
-    companyOrGauntletName: '',
-    outputFormat: 'both',
+    author: "iSolvRisk Inc.",
+    client: "",
+    companyOrGauntletName: "",
+    outputFormat: "both",
   };
 }
 
 const STEPS = [
-  'Select Type',
-  'Metadata',
-  'Source',
-  'Analyze',
-  'Review',
-  'Generate',
+  "Select Type",
+  "Metadata",
+  "Source",
+  "Analyze",
+  "Review",
+  "Generate",
 ] as const;
 
-// ─── Main Component ────────────────────────────────────────────────────────────
 interface AutomizerProps {
   onClose: () => void;
 }
@@ -116,47 +138,51 @@ interface AutomizerProps {
 export default function Automizer({ onClose }: AutomizerProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [workProduct, setWorkProduct] = useState<WorkProductType | null>(null);
-  const [metadata, setMetadata] = useState<DocumentMetadata>(makeDefaultMetadata(null));
-  const [sourceText, setSourceText] = useState('');
-  const [sourceTab, setSourceTab] = useState<'paste' | 'upload'>('paste');
+  const [metadata, setMetadata] = useState<
+    DocumentMetadata & {
+      outputFormat: OutputFormat;
+      companyOrGauntletName?: string;
+    }
+  >(makeDefaultMetadata(null));
+  const [sourceText, setSourceText] = useState("");
+  const [sourceTab, setSourceTab] = useState<"paste" | "upload">("paste");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isHighlight, setIsHighlight] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Parse state
   const [analyzeStep, setAnalyzeStep] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
-  // Document state
   const [document, setDocument] = useState<AutomizerDocument | null>(null);
   const [errors, setErrors] = useState<ParseError[]>([]);
   const [warnings, setWarnings] = useState<ParseError[]>([]);
-  const [grammarSuggestions, setGrammarSuggestions] = useState<GrammarSuggestion[]>([]);
 
-  // Generate state
   const [isGenerating, setIsGenerating] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [docxUrl, setDocxUrl] = useState<string | null>(null);
   const [generateError, setGenerateError] = useState<string | null>(null);
 
-  // Step handlers
-  const goNext = () => setStep((s) => Math.min(s + 1, 6) as 1 | 2 | 3 | 4 | 5 | 6);
-  const goBack = () => setStep((s) => Math.max(s - 1, 1) as 1 | 2 | 3 | 4 | 5 | 6);
+  const goNext = () =>
+    setStep((s) => Math.min(s + 1, 6) as 1 | 2 | 3 | 4 | 5 | 6);
+  const goBack = () =>
+    setStep((s) => Math.max(s - 1, 1) as 1 | 2 | 3 | 4 | 5 | 6);
 
-  // Work product selection
   const selectWorkProduct = (wp: WorkProductType) => {
     setWorkProduct(wp);
     setMetadata(makeDefaultMetadata(wp));
   };
 
-  // File upload
   const handleFiles = async (files: FileList) => {
     const file = files[0];
     if (!file) return;
     const name = file.name.toLowerCase();
-    if (!name.endsWith('.docx') && !name.endsWith('.txt') && !name.endsWith('.md')) {
-      setAnalyzeError('Please upload a .docx, .txt, or .md file.');
+    if (
+      !name.endsWith(".docx") &&
+      !name.endsWith(".txt") &&
+      !name.endsWith(".md")
+    ) {
+      setAnalyzeError("Please upload a .docx, .txt, or .md file.");
       return;
     }
     setUploadedFile(file);
@@ -165,7 +191,8 @@ export default function Automizer({ onClose }: AutomizerProps) {
       const text = await extractText(file);
       setSourceText(text);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed to extract file text.';
+      const msg =
+        e instanceof Error ? e.message : "Failed to extract file text.";
       setAnalyzeError(msg);
     }
   };
@@ -175,7 +202,6 @@ export default function Automizer({ onClose }: AutomizerProps) {
     e.stopPropagation();
   };
 
-  // Analyze
   const handleAnalyze = async () => {
     if (!workProduct || !sourceText.trim()) return;
     setIsAnalyzing(true);
@@ -183,32 +209,32 @@ export default function Automizer({ onClose }: AutomizerProps) {
     setAnalyzeStep(0);
 
     try {
-      setAnalyzeStep(1); // Normalizing
-      await new Promise(r => setTimeout(r, 300));
-      setAnalyzeStep(2); // Parsing
-      await new Promise(r => setTimeout(r, 200));
+      setAnalyzeStep(1);
+      await new Promise((r) => setTimeout(r, 300));
+      setAnalyzeStep(2);
+      await new Promise((r) => setTimeout(r, 200));
 
       const result = await runParse(workProduct, sourceText, metadata);
 
-      setAnalyzeStep(3); // Validating
-      await new Promise(r => setTimeout(r, 200));
+      setAnalyzeStep(3);
+      await new Promise((r) => setTimeout(r, 200));
 
-      setDocument(result.document as AutomizerDocument);
+      setDocument(result.document);
       setErrors(result.errors);
       setWarnings(result.warnings);
-      setAnalyzeStep(4); // Done
+      setAnalyzeStep(4);
 
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 400));
       goNext();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'An unexpected error occurred.';
+      const msg =
+        e instanceof Error ? e.message : "An unexpected error occurred.";
       setAnalyzeError(msg);
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  // Generate documents
   const handleGenerate = async () => {
     if (!document) return;
     setIsGenerating(true);
@@ -219,46 +245,38 @@ export default function Automizer({ onClose }: AutomizerProps) {
     try {
       const fmt = metadata.outputFormat;
 
-      if (fmt === 'pdf' || fmt === 'both') {
+      if (fmt === "pdf" || fmt === "both") {
         const pdfBytes = await generatePDF(document);
-        const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+        const blob = new Blob([pdfBytes as unknown as Blob], {
+          type: "application/pdf",
+        });
         setPdfUrl(URL.createObjectURL(blob));
       }
 
-      if (fmt === 'docx' || fmt === 'both') {
+      if (fmt === "docx" || fmt === "both") {
         const blob = await generateDOCX(document);
         setDocxUrl(URL.createObjectURL(blob));
       }
 
       setStep(6);
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed to generate document.';
+      const msg =
+        e instanceof Error ? e.message : "Failed to generate document.";
       setGenerateError(msg);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Grammar suggestion handlers
-  const acceptSuggestion = (id: string) =>
-    setGrammarSuggestions(prev =>
-      prev.map(s => s.id === id ? { ...s, accepted: true } : s)
-    );
-  const rejectSuggestion = (id: string) =>
-    setGrammarSuggestions(prev =>
-      prev.map(s => s.id === id ? { ...s, accepted: false } : s)
-    );
-  const acceptAllSuggestions = () =>
-    setGrammarSuggestions(prev => prev.map(s => ({ ...s, accepted: true })));
-
-  const docTitle = document?.metadata?.title || 'Gauntlet Document';
-  const safeFilename = docTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+  const docTitle = document?.metadata?.title || "Gauntlet Document";
+  const safeFilename = docTitle.replace(/[^a-z0-9]/gi, "-").toLowerCase();
 
   const canProceedStep1 = workProduct !== null;
-  const canProceedStep2 = metadata.title.trim().length > 0 && metadata.headerTitle.trim().length > 0;
+  const canProceedStep2 =
+    (metadata.title ?? "").trim().length > 0 &&
+    (metadata.headerTitle ?? "").trim().length > 0;
   const canProceedStep3 = sourceText.trim().length > 20;
 
-  // ── Render Step Content ──────────────────────────────────────────────────────
   const renderStep = () => {
     switch (step) {
       case 1:
@@ -266,37 +284,50 @@ export default function Automizer({ onClose }: AutomizerProps) {
           <div className={styles.step1}>
             <div className={styles.step1Intro}>
               <h2>What would you like to create?</h2>
-              <p>Select the type of iSolvRisk document you want to generate from your source material.</p>
+              <p>
+                Select the type of iSolvRisk document you want to generate from
+                your source material.
+              </p>
             </div>
             <div className={styles.productCards}>
               <button
                 id="product-gauntlet"
-                className={`${styles.productCard} ${workProduct === 'gauntlet' ? styles.productCardSelected : ''}`}
-                onClick={() => selectWorkProduct('gauntlet')}
+                className={`${styles.productCard} ${workProduct === "gauntlet" ? styles.productCardSelected : ""}`}
+                onClick={() => selectWorkProduct("gauntlet")}
               >
-                <div className={styles.productCardIcon}><FileText size={20} /></div>
+                <div className={styles.productCardIcon}>
+                  <FileText size={20} />
+                </div>
                 <p className={styles.productCardTitle}>Gauntlet Challenges</p>
                 <p className={styles.productCardDesc}>
-                  Structured challenge documents with scenario, task, model components,
-                  target outcomes, and hints.
+                  Structured challenge documents with scenario, task, model
+                  components, target outcomes, and hints.
                 </p>
-                <div className={`${styles.productCardCheck} ${workProduct === 'gauntlet' ? styles.productCardCheckVisible : ''}`}>
+                <div
+                  className={`${styles.productCardCheck} ${workProduct === "gauntlet" ? styles.productCardCheckVisible : ""}`}
+                >
                   <CheckCircle size={12} color="#fff" />
                 </div>
               </button>
 
               <button
                 id="product-hitchhikers"
-                className={`${styles.productCard} ${workProduct === 'hitchhikers-guide' ? styles.productCardSelected : ''}`}
-                onClick={() => selectWorkProduct('hitchhikers-guide')}
+                className={`${styles.productCard} ${workProduct === "hitchhikers-guide" ? styles.productCardSelected : ""}`}
+                onClick={() => selectWorkProduct("hitchhikers-guide")}
               >
-                <div className={styles.productCardIcon}><Map size={20} /></div>
-                <p className={styles.productCardTitle}>Hitchhiker&apos;s Guide</p>
-                <p className={styles.productCardDesc}>
-                  Facilitator guides with nine Roman numeral sections explaining goals,
-                  factors, outcomes, and strong reasoning.
+                <div className={styles.productCardIcon}>
+                  <Map size={20} />
+                </div>
+                <p className={styles.productCardTitle}>
+                  Hitchhiker&apos;s Guide
                 </p>
-                <div className={`${styles.productCardCheck} ${workProduct === 'hitchhikers-guide' ? styles.productCardCheckVisible : ''}`}>
+                <p className={styles.productCardDesc}>
+                  Facilitator guides with nine Roman numeral sections explaining
+                  goals, factors, outcomes, and strong reasoning.
+                </p>
+                <div
+                  className={`${styles.productCardCheck} ${workProduct === "hitchhikers-guide" ? styles.productCardCheckVisible : ""}`}
+                >
                   <CheckCircle size={12} color="#fff" />
                 </div>
               </button>
@@ -309,7 +340,10 @@ export default function Automizer({ onClose }: AutomizerProps) {
           <div className={styles.metaForm}>
             <div className={styles.metaGrid}>
               <div className={`${styles.fieldGroup} ${styles.fieldGroupFull}`}>
-                <label className={`${styles.fieldLabel} ${styles.fieldRequired}`} htmlFor="meta-title">
+                <label
+                  className={`${styles.fieldLabel} ${styles.fieldRequired}`}
+                  htmlFor="meta-title"
+                >
                   Document Title
                 </label>
                 <input
@@ -320,13 +354,17 @@ export default function Automizer({ onClose }: AutomizerProps) {
                   onChange={(e) => {
                     const title = e.target.value;
                     const prefix =
-                      workProduct === 'hitchhikers-guide'
+                      workProduct === "hitchhikers-guide"
                         ? "iSolvRisk - Hitchhiker's Guide"
-                        : `iSolvRisk - ${title || 'Gauntlet Challenges'}`;
+                        : `iSolvRisk - ${title || "Gauntlet Challenges"}`;
                     setMetadata((m) => ({
                       ...m,
                       title,
-                      headerTitle: m.headerTitle === makeDefaultMetadata(workProduct).headerTitle ? prefix : m.headerTitle,
+                      headerTitle:
+                        m.headerTitle ===
+                        makeDefaultMetadata(workProduct).headerTitle
+                          ? prefix
+                          : m.headerTitle,
                     }));
                   }}
                   placeholder="e.g. Temple University Company Gauntlet Challenges"
@@ -334,7 +372,10 @@ export default function Automizer({ onClose }: AutomizerProps) {
               </div>
 
               <div className={`${styles.fieldGroup} ${styles.fieldGroupFull}`}>
-                <label className={`${styles.fieldLabel} ${styles.fieldRequired}`} htmlFor="meta-header">
+                <label
+                  className={`${styles.fieldLabel} ${styles.fieldRequired}`}
+                  htmlFor="meta-header"
+                >
                   Header Title
                 </label>
                 <input
@@ -342,56 +383,86 @@ export default function Automizer({ onClose }: AutomizerProps) {
                   type="text"
                   className={styles.fieldInput}
                   value={metadata.headerTitle}
-                  onChange={(e) => setMetadata((m) => ({ ...m, headerTitle: e.target.value }))}
+                  onChange={(e) =>
+                    setMetadata((m) => ({ ...m, headerTitle: e.target.value }))
+                  }
                   placeholder="e.g. iSolvRisk - Temple University Company Gauntlet Challenges"
                 />
-                <span className={styles.fieldHint}>Appears in the running header on every page. Independent from the document title.</span>
+                <span className={styles.fieldHint}>
+                  Appears in the running header on every page. Independent from
+                  the document title.
+                </span>
               </div>
 
               <div className={styles.fieldGroup}>
-                <label className={`${styles.fieldLabel} ${styles.fieldRequired}`} htmlFor="meta-date">Date</label>
+                <label
+                  className={`${styles.fieldLabel} ${styles.fieldRequired}`}
+                  htmlFor="meta-date"
+                >
+                  Date
+                </label>
                 <input
                   id="meta-date"
                   type="text"
                   className={styles.fieldInput}
                   value={metadata.date}
-                  onChange={(e) => setMetadata((m) => ({ ...m, date: e.target.value }))}
+                  onChange={(e) =>
+                    setMetadata((m) => ({ ...m, date: e.target.value }))
+                  }
                   placeholder="e.g. July 2026"
                 />
               </div>
 
               <div className={styles.fieldGroup}>
-                <label className={`${styles.fieldLabel} ${styles.fieldRequired}`} htmlFor="meta-author">Author</label>
+                <label
+                  className={`${styles.fieldLabel} ${styles.fieldRequired}`}
+                  htmlFor="meta-author"
+                >
+                  Author
+                </label>
                 <input
                   id="meta-author"
                   type="text"
                   className={styles.fieldInput}
                   value={metadata.author}
-                  onChange={(e) => setMetadata((m) => ({ ...m, author: e.target.value }))}
+                  onChange={(e) =>
+                    setMetadata((m) => ({ ...m, author: e.target.value }))
+                  }
                   placeholder="iSolvRisk Inc."
                 />
               </div>
 
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel} htmlFor="meta-client">Client / Institution</label>
+                <label className={styles.fieldLabel} htmlFor="meta-client">
+                  Client / Institution
+                </label>
                 <input
                   id="meta-client"
                   type="text"
                   className={styles.fieldInput}
                   value={metadata.client}
-                  onChange={(e) => setMetadata((m) => ({ ...m, client: e.target.value }))}
+                  onChange={(e) =>
+                    setMetadata((m) => ({ ...m, client: e.target.value }))
+                  }
                   placeholder="Optional"
                 />
               </div>
 
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel} htmlFor="meta-company">Company / Gauntlet Name</label>
+                <label className={styles.fieldLabel} htmlFor="meta-company">
+                  Company / Gauntlet Name
+                </label>
                 <input
                   id="meta-company"
                   type="text"
                   className={styles.fieldInput}
-                  value={metadata.companyOrGauntletName}
-                  onChange={(e) => setMetadata((m) => ({ ...m, companyOrGauntletName: e.target.value }))}
+                  value={metadata.companyOrGauntletName || ""}
+                  onChange={(e) =>
+                    setMetadata((m) => ({
+                      ...m,
+                      companyOrGauntletName: e.target.value,
+                    }))
+                  }
                   placeholder="Optional"
                 />
               </div>
@@ -399,14 +470,20 @@ export default function Automizer({ onClose }: AutomizerProps) {
               <div className={`${styles.fieldGroup} ${styles.fieldGroupFull}`}>
                 <label className={styles.fieldLabel}>Output Format</label>
                 <div className={styles.formatOptions}>
-                  {(['pdf', 'docx', 'both'] as OutputFormat[]).map((fmt) => (
+                  {(["pdf", "docx", "both"] as OutputFormat[]).map((fmt) => (
                     <button
                       key={fmt}
                       id={`format-${fmt}`}
-                      className={`${styles.formatOption} ${metadata.outputFormat === fmt ? styles.formatOptionSelected : ''}`}
-                      onClick={() => setMetadata((m) => ({ ...m, outputFormat: fmt }))}
+                      className={`${styles.formatOption} ${metadata.outputFormat === fmt ? styles.formatOptionSelected : ""}`}
+                      onClick={() =>
+                        setMetadata((m) => ({ ...m, outputFormat: fmt }))
+                      }
                     >
-                      {fmt === 'pdf' ? 'PDF Only' : fmt === 'docx' ? 'DOCX Only' : 'PDF + DOCX'}
+                      {fmt === "pdf"
+                        ? "PDF Only"
+                        : fmt === "docx"
+                          ? "DOCX Only"
+                          : "PDF + DOCX"}
                     </button>
                   ))}
                 </div>
@@ -421,28 +498,28 @@ export default function Automizer({ onClose }: AutomizerProps) {
             <div className={styles.sourceInputTabs}>
               <button
                 id="source-tab-paste"
-                className={`${styles.sourceTab} ${sourceTab === 'paste' ? styles.sourceTabActive : ''}`}
-                onClick={() => setSourceTab('paste')}
+                className={`${styles.sourceTab} ${sourceTab === "paste" ? styles.sourceTabActive : ""}`}
+                onClick={() => setSourceTab("paste")}
               >
                 Paste Text
               </button>
               <button
                 id="source-tab-upload"
-                className={`${styles.sourceTab} ${sourceTab === 'upload' ? styles.sourceTabActive : ''}`}
-                onClick={() => setSourceTab('upload')}
+                className={`${styles.sourceTab} ${sourceTab === "upload" ? styles.sourceTabActive : ""}`}
+                onClick={() => setSourceTab("upload")}
               >
                 Upload File
               </button>
             </div>
 
-            {sourceTab === 'paste' ? (
+            {sourceTab === "paste" ? (
               <textarea
                 id="source-textarea"
                 className={styles.sourceTextarea}
                 value={sourceText}
                 onChange={(e) => setSourceText(e.target.value)}
                 placeholder={
-                  workProduct === 'gauntlet'
+                  workProduct === "gauntlet"
                     ? `Paste your Gauntlet challenge text here.\n\nThe parser will handle inconsistent headings, markdown formatting, numbered lists, AI-generated output, and missing labels.\n\nExample:\n\nThe Production Network Disruption\n\nScenario:\nBimbo Bakeries has experienced a fire at its largest production facility...`
                     : `Paste your Hitchhiker's Guide text here.\n\nThe parser will handle Roman numerals, alphabetical subsections, numbered points, and common formatting variations.\n\nExample:\n\nI. Scenario Summary and Decision Context\n   A. Paragraph content here...\n      1. Supporting point`
                 }
@@ -450,22 +527,37 @@ export default function Automizer({ onClose }: AutomizerProps) {
             ) : (
               <div
                 id="source-upload-zone"
-                className={`${styles.uploadDropZone} ${isHighlight ? styles.uploadDropZoneHighlight : ''}`}
-                onDragEnter={(e: DragEvent) => { preventDefaults(e); setIsHighlight(true); }}
-                onDragOver={(e: DragEvent) => { preventDefaults(e); setIsHighlight(true); }}
-                onDragLeave={(e: DragEvent) => { preventDefaults(e); setIsHighlight(false); }}
+                className={`${styles.uploadDropZone} ${isHighlight ? styles.uploadDropZoneHighlight : ""}`}
+                onDragEnter={(e: DragEvent) => {
+                  preventDefaults(e);
+                  setIsHighlight(true);
+                }}
+                onDragOver={(e: DragEvent) => {
+                  preventDefaults(e);
+                  setIsHighlight(true);
+                }}
+                onDragLeave={(e: DragEvent) => {
+                  preventDefaults(e);
+                  setIsHighlight(false);
+                }}
                 onDrop={(e: DragEvent) => {
                   preventDefaults(e);
                   setIsHighlight(false);
-                  if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+                  if (e.dataTransfer.files.length)
+                    handleFiles(e.dataTransfer.files);
                 }}
                 onClick={() => fileInputRef.current?.click()}
               >
-                <Upload size={36} color={isHighlight ? '#0057b8' : 'var(--gray-400)'} />
+                <Upload
+                  size={36}
+                  color={isHighlight ? "#0057b8" : "var(--gray-400)"}
+                />
                 <p className={styles.uploadDropZoneText}>
                   Drag and drop your file here, or click to browse
                 </p>
-                <p className={styles.uploadDropZoneFormats}>Supported: .docx, .txt, .md</p>
+                <p className={styles.uploadDropZoneFormats}>
+                  Supported: .docx, .txt, .md
+                </p>
                 {uploadedFile && (
                   <div className={styles.uploadedFileName}>
                     <CheckCircle size={14} />
@@ -477,21 +569,26 @@ export default function Automizer({ onClose }: AutomizerProps) {
                   ref={fileInputRef}
                   className={styles.hiddenInput}
                   accept=".docx,.txt,.md"
-                  onChange={(e) => e.target.files && handleFiles(e.target.files)}
+                  onChange={(e) =>
+                    e.target.files && handleFiles(e.target.files)
+                  }
                 />
               </div>
             )}
 
-            {analyzeError && <div className={styles.errorMsg}>{analyzeError}</div>}
+            {analyzeError && (
+              <div className={styles.errorMsg}>{analyzeError}</div>
+            )}
 
             {sourceText.trim().length > 0 && (
               <div className={styles.aiNotice}>
                 <Info size={13} />
                 <span>
-                  {sourceText.trim().split(/\s+/).length.toLocaleString()} words detected.
+                  {sourceText.trim().split(/\s+/).length.toLocaleString()} words
+                  detected.
                   {process.env.NEXT_PUBLIC_GEMINI_API_KEY
-                    ? ' AI-assisted parsing is active for ambiguous sections.'
-                    : ''}
+                    ? " AI-assisted parsing is active for ambiguous sections."
+                    : ""}
                 </span>
               </div>
             )}
@@ -500,21 +597,31 @@ export default function Automizer({ onClose }: AutomizerProps) {
 
       case 4: {
         const analyzeSteps = [
-          { label: 'Normalize text', icon: '⚙' },
-          { label: 'Detect headings and sections', icon: '🔍' },
-          { label: 'Parse document structure', icon: '📐' },
-          { label: 'Validate schema', icon: '✓' },
+          { label: "Normalize text", icon: "⚙" },
+          { label: "Detect headings and sections", icon: "🔍" },
+          { label: "Parse document structure", icon: "📐" },
+          { label: "Validate schema", icon: "✓" },
         ];
 
         const totalChallenges =
-          document?.documentType === 'gauntlet'
-            ? document.sections.reduce((sum, s) => sum + s.challenges.length, 0)
-            : document?.documentType === 'hitchhikers-guide'
-            ? document.challenges.length
-            : 0;
+          document?.documentType === "gauntlet"
+            ? (document as unknown as GauntletDocument).sections.reduce(
+                (sum, s) => sum + s.challenges.length,
+                0,
+              )
+            : document?.documentType === "hitchhikers-guide"
+              ? (document as unknown as HitchhikersGuide).challenges.length
+              : 0;
 
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "1.5rem",
+            }}
+          >
             <div className={styles.analyzeSteps}>
               {analyzeSteps.map((s, i) => {
                 const isDone = analyzeStep > i + 1;
@@ -522,12 +629,18 @@ export default function Automizer({ onClose }: AutomizerProps) {
                 return (
                   <div
                     key={i}
-                    className={`${styles.analyzeStepItem} ${isDone ? styles.analyzeStepDone : ''} ${isActive ? styles.analyzeStepActive : ''}`}
+                    className={`${styles.analyzeStepItem} ${isDone ? styles.analyzeStepDone : ""} ${isActive ? styles.analyzeStepActive : ""}`}
                   >
                     <div
-                      className={`${styles.analyzeStepIcon} ${isDone ? styles.analyzeStepIconDone : ''} ${isActive ? styles.analyzeStepIconActive : ''}`}
+                      className={`${styles.analyzeStepIcon} ${isDone ? styles.analyzeStepIconDone : ""} ${isActive ? styles.analyzeStepIconActive : ""}`}
                     >
-                      {isActive ? <Loader2 size={12} className={styles.spin} /> : isDone ? '✓' : s.icon}
+                      {isActive ? (
+                        <Loader2 size={12} className={styles.spin} />
+                      ) : isDone ? (
+                        "✓"
+                      ) : (
+                        s.icon
+                      )}
                     </div>
                     {s.label}
                   </div>
@@ -535,24 +648,37 @@ export default function Automizer({ onClose }: AutomizerProps) {
               })}
             </div>
 
-            {analyzeError && <div className={styles.errorMsg}>{analyzeError}</div>}
+            {analyzeError && (
+              <div className={styles.errorMsg}>{analyzeError}</div>
+            )}
 
             {analyzeStep === 4 && document && (
-              <div className={styles.analyzeResults} style={{ width: '100%', maxWidth: '400px' }}>
+              <div
+                className={styles.analyzeResults}
+                style={{ width: "100%", maxWidth: "400px" }}
+              >
                 <div className={styles.analyzeResultsTitle}>Parse Results</div>
                 <div className={styles.analyzeResultsStat}>
                   <span>Challenges detected</span>
-                  <span className={`${styles.analyzeResultsValue} ${styles.analyzeOkCount}`}>{totalChallenges}</span>
+                  <span
+                    className={`${styles.analyzeResultsValue} ${styles.analyzeOkCount}`}
+                  >
+                    {totalChallenges}
+                  </span>
                 </div>
                 <div className={styles.analyzeResultsStat}>
                   <span>Errors</span>
-                  <span className={`${styles.analyzeResultsValue} ${errors.length > 0 ? styles.analyzeErrorCount : styles.analyzeOkCount}`}>
+                  <span
+                    className={`${styles.analyzeResultsValue} ${errors.length > 0 ? styles.analyzeErrorCount : styles.analyzeOkCount}`}
+                  >
                     {errors.length}
                   </span>
                 </div>
                 <div className={styles.analyzeResultsStat}>
                   <span>Warnings</span>
-                  <span className={`${styles.analyzeResultsValue} ${warnings.length > 0 ? styles.analyzeWarnCount : styles.analyzeOkCount}`}>
+                  <span
+                    className={`${styles.analyzeResultsValue} ${warnings.length > 0 ? styles.analyzeWarnCount : styles.analyzeOkCount}`}
+                  >
                     {warnings.length}
                   </span>
                 </div>
@@ -564,19 +690,30 @@ export default function Automizer({ onClose }: AutomizerProps) {
 
       case 5:
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: '100%' }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+              height: "100%",
+            }}
+          >
             <div className={styles.reviewLayout}>
               <div className={styles.reviewMain}>
-                {document?.documentType === 'gauntlet' && (
+                {document?.documentType === "gauntlet" && (
                   <GauntletReview
-                    document={document}
-                    onChange={(updated) => setDocument(updated)}
+                    document={document as unknown as GauntletDocument}
+                    onChange={(updated) =>
+                      setDocument(updated as unknown as AutomizerDocument)
+                    }
                   />
                 )}
-                {document?.documentType === 'hitchhikers-guide' && (
+                {document?.documentType === "hitchhikers-guide" && (
                   <HitchhikersReview
-                    document={document}
-                    onChange={(updated) => setDocument(updated)}
+                    document={document as unknown as HitchhikersGuide}
+                    onChange={(updated) =>
+                      setDocument(updated as unknown as AutomizerDocument)
+                    }
                   />
                 )}
               </div>
@@ -584,7 +721,11 @@ export default function Automizer({ onClose }: AutomizerProps) {
                 <ValidationPanel errors={errors} warnings={warnings} />
               </div>
             </div>
-            {generateError && <div className={styles.errorMsg} style={{ marginTop: 'auto' }}>{generateError}</div>}
+            {generateError && (
+              <div className={styles.errorMsg} style={{ marginTop: "auto" }}>
+                {generateError}
+              </div>
+            )}
           </div>
         );
 
@@ -593,12 +734,14 @@ export default function Automizer({ onClose }: AutomizerProps) {
           <div className={styles.generateSection}>
             <div>
               <p className={styles.generateTitle}>
-                {isGenerating ? 'Generating your documents…' : 'Your documents are ready!'}
+                {isGenerating
+                  ? "Generating your documents…"
+                  : "Your documents are ready!"}
               </p>
               <p className={styles.generateSub}>
                 {isGenerating
-                  ? 'Rendering from canonical JSON. This may take a moment.'
-                  : 'Download your formatted iSolvRisk documents below.'}
+                  ? "Rendering from canonical JSON. This may take a moment."
+                  : "Download your formatted iSolvRisk documents below."}
               </p>
             </div>
 
@@ -606,13 +749,17 @@ export default function Automizer({ onClose }: AutomizerProps) {
               <Loader2 size={40} className={styles.spin} color="#0057b8" />
             )}
 
-            {generateError && <div className={styles.errorMsg}>{generateError}</div>}
+            {generateError && (
+              <div className={styles.errorMsg}>{generateError}</div>
+            )}
 
             {!isGenerating && (pdfUrl || docxUrl) && (
               <div className={styles.downloadGrid}>
                 {pdfUrl && (
                   <div className={styles.downloadCard}>
-                    <div className={`${styles.downloadCardIcon} ${styles.downloadCardIconPDF}`}>
+                    <div
+                      className={`${styles.downloadCardIcon} ${styles.downloadCardIconPDF}`}
+                    >
                       <FileText size={20} />
                     </div>
                     <p className={styles.downloadCardTitle}>PDF Document</p>
@@ -628,7 +775,9 @@ export default function Automizer({ onClose }: AutomizerProps) {
                 )}
                 {docxUrl && (
                   <div className={styles.downloadCard}>
-                    <div className={`${styles.downloadCardIcon} ${styles.downloadCardIconDOCX}`}>
+                    <div
+                      className={`${styles.downloadCardIcon} ${styles.downloadCardIconDOCX}`}
+                    >
                       <FileDown size={20} />
                     </div>
                     <p className={styles.downloadCardTitle}>Word Document</p>
@@ -649,12 +798,15 @@ export default function Automizer({ onClose }: AutomizerProps) {
     }
   };
 
-  // ── Footer Buttons ───────────────────────────────────────────────────────────
   const renderFooterLeft = () => {
     if (step === 1) return null;
     if (step === 4 && isAnalyzing) return null;
     return (
-      <button className={styles.btnBack} onClick={step === 6 ? () => setStep(5) : goBack} id="btn-back">
+      <button
+        className={styles.btnBack}
+        onClick={step === 6 ? () => setStep(5) : goBack}
+        id="btn-back"
+      >
         <ChevronLeft size={15} /> Back
       </button>
     );
@@ -688,7 +840,11 @@ export default function Automizer({ onClose }: AutomizerProps) {
         return (
           <button
             className={styles.btnNext}
-            onClick={() => { setStep(4); setAnalyzeStep(0); setTimeout(handleAnalyze, 100); }}
+            onClick={() => {
+              setStep(4);
+              setAnalyzeStep(0);
+              setTimeout(handleAnalyze, 100);
+            }}
             disabled={!canProceedStep3}
             id="btn-analyze"
           >
@@ -701,14 +857,17 @@ export default function Automizer({ onClose }: AutomizerProps) {
           return (
             <button
               className={styles.btnNext}
-              onClick={() => { setAnalyzeStep(0); setTimeout(handleAnalyze, 100); }}
+              onClick={() => {
+                setAnalyzeStep(0);
+                setTimeout(handleAnalyze, 100);
+              }}
               id="btn-retry-analyze"
             >
               Retry
             </button>
           );
         }
-        return null; // auto-advance on success
+        return null;
       case 5:
         return (
           <button
@@ -718,9 +877,13 @@ export default function Automizer({ onClose }: AutomizerProps) {
             id="btn-generate"
           >
             {isGenerating ? (
-              <><Loader2 size={14} className={styles.spin} /> Generating…</>
+              <>
+                <Loader2 size={14} className={styles.spin} /> Generating…
+              </>
             ) : (
-              <><Sparkles size={14} /> Generate Documents</>
+              <>
+                <Sparkles size={14} /> Generate Documents
+              </>
             )}
           </button>
         );
@@ -732,21 +895,24 @@ export default function Automizer({ onClose }: AutomizerProps) {
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>
             <span className={styles.headerLogo}>
-              i<span>Solv</span><span className={styles.headerLogoRisk}>Risk</span>
+              i<span>Solv</span>
+              <span className={styles.headerLogoRisk}>Risk</span>
             </span>
             <span className={styles.headerSep}>|</span>
             <h3 className={styles.headerTitle}>Document Automizer</h3>
           </div>
-          <button className={styles.btnClose} onClick={onClose} aria-label="Close Automizer">
+          <button
+            className={styles.btnClose}
+            onClick={onClose}
+            aria-label="Close Automizer"
+          >
             <X size={18} />
           </button>
         </div>
 
-        {/* Step Bar */}
         <div className={styles.stepBar} role="navigation" aria-label="Steps">
           {STEPS.map((label, i) => {
             const stepNum = i + 1;
@@ -755,16 +921,20 @@ export default function Automizer({ onClose }: AutomizerProps) {
             return (
               <React.Fragment key={i}>
                 {i > 0 && (
-                  <div className={`${styles.stepConnector} ${isDone ? styles.stepConnectorDone : ''}`} />
+                  <div
+                    className={`${styles.stepConnector} ${isDone ? styles.stepConnectorDone : ""}`}
+                  />
                 )}
                 <div className={styles.stepItem}>
                   <div
-                    className={`${styles.stepBubble} ${isActive ? styles.stepBubbleActive : ''} ${isDone ? styles.stepBubbleDone : ''}`}
-                    aria-current={isActive ? 'step' : undefined}
+                    className={`${styles.stepBubble} ${isActive ? styles.stepBubbleActive : ""} ${isDone ? styles.stepBubbleDone : ""}`}
+                    aria-current={isActive ? "step" : undefined}
                   >
-                    {isDone ? '✓' : stepNum}
+                    {isDone ? "✓" : stepNum}
                   </div>
-                  <span className={`${styles.stepLabel} ${isActive ? styles.stepLabelActive : ''}`}>
+                  <span
+                    className={`${styles.stepLabel} ${isActive ? styles.stepLabelActive : ""}`}
+                  >
                     {label}
                   </span>
                 </div>
@@ -773,12 +943,10 @@ export default function Automizer({ onClose }: AutomizerProps) {
           })}
         </div>
 
-        {/* Content */}
         <div className={styles.content} id={`automizer-step-${step}`}>
           {renderStep()}
         </div>
 
-        {/* Footer */}
         <div className={styles.footer}>
           <div className={styles.footerLeft}>{renderFooterLeft()}</div>
           <div className={styles.footerRight}>{renderFooterRight()}</div>

@@ -2,9 +2,13 @@
 // Renders canonical GauntletDocument or HitchhikersGuide to PDF using pdf-lib.
 // All rendering is done client-side in the browser.
 
-import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage } from 'pdf-lib';
-import type { GauntletDocument, HitchhikersGuide, AutomizerDocument, HGSectionNumber } from './types';
-import { HG_SECTION_TITLES } from './types';
+import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage } from "pdf-lib";
+import type {
+  GauntletDocument,
+  HitchhikersGuide,
+  AutomizerDocument,
+  HGSectionNumber,
+} from "./types";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Layout Constants (letter size: 612 × 792 pt)
@@ -13,32 +17,32 @@ const PAGE_W = 612;
 const PAGE_H = 792;
 const MARGIN_LEFT = 58;
 const MARGIN_RIGHT = 58;
-const MARGIN_TOP = 72;       // space for header
-const MARGIN_BOTTOM = 60;    // space for footer
+const MARGIN_TOP = 72; // space for header
+const MARGIN_BOTTOM = 60; // space for footer
 const BODY_WIDTH = PAGE_W - MARGIN_LEFT - MARGIN_RIGHT;
 const HEADER_Y = PAGE_H - 32;
 const FOOTER_Y = 28;
 
 // Colors
-const COLOR_BLACK    = rgb(0.05, 0.05, 0.08);
-const COLOR_GRAY     = rgb(0.45, 0.45, 0.50);
-const COLOR_PRIMARY  = rgb(0.00, 0.34, 0.72);  // iSolvRisk blue
-const COLOR_DIVIDER  = rgb(0.80, 0.80, 0.82);
+const COLOR_BLACK = rgb(0.05, 0.05, 0.08);
+const COLOR_GRAY = rgb(0.45, 0.45, 0.5);
+const COLOR_PRIMARY = rgb(0.0, 0.34, 0.72); // iSolvRisk blue
+const COLOR_DIVIDER = rgb(0.8, 0.8, 0.82);
 
 // Font sizes
-const SIZE_HEADER        = 8;
-const SIZE_META_TITLE    = 16;
-const SIZE_META_SUB      = 9;
-const SIZE_COMPANY       = 13;
-const SIZE_CHALLENGE     = 11;
-const SIZE_SECTION_HEAD  = 9.5;
-const SIZE_BODY          = 9;
-const SIZE_LIST_ITEM     = 9;
+const SIZE_HEADER = 8;
+const SIZE_META_TITLE = 16;
+const SIZE_META_SUB = 9;
+const SIZE_COMPANY = 13;
+const SIZE_CHALLENGE = 11;
+const SIZE_SECTION_HEAD = 9.5;
+const SIZE_BODY = 9;
+const SIZE_LIST_ITEM = 9;
 
 // Vertical spacing
-const LINE_H_BODY  = 13;
-const LINE_H_HEAD  = 16;
-const SECTION_GAP  = 10;
+const LINE_H_BODY = 13;
+
+const SECTION_GAP = 10;
 const CHALLENGE_GAP = 18;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,7 +77,6 @@ async function addPage(state: RenderState): Promise<void> {
 function drawPageChrome(state: RenderState) {
   const page = currentPage(state);
 
-  // Header text (left)
   page.drawText(state.headerTitle, {
     x: MARGIN_LEFT,
     y: HEADER_Y,
@@ -82,8 +85,7 @@ function drawPageChrome(state: RenderState) {
     color: COLOR_GRAY,
   });
 
-  // Logo placeholder (right) — a simple styled text until real SVG is embedded
-  page.drawText('iSolvRisk', {
+  page.drawText("iSolvRisk", {
     x: PAGE_W - MARGIN_RIGHT - 42,
     y: HEADER_Y,
     size: SIZE_HEADER + 1,
@@ -91,7 +93,6 @@ function drawPageChrome(state: RenderState) {
     color: COLOR_PRIMARY,
   });
 
-  // Header rule
   page.drawLine({
     start: { x: MARGIN_LEFT, y: HEADER_Y - 6 },
     end: { x: PAGE_W - MARGIN_RIGHT, y: HEADER_Y - 6 },
@@ -99,7 +100,6 @@ function drawPageChrome(state: RenderState) {
     color: COLOR_DIVIDER,
   });
 
-  // Footer: Page N (right-aligned)
   const footerText = `Page ${state.pageCount}`;
   const footerWidth = state.regular.widthOfTextAtSize(footerText, SIZE_HEADER);
   page.drawText(footerText, {
@@ -111,19 +111,15 @@ function drawPageChrome(state: RenderState) {
   });
 }
 
-/** Ensure there's at least `neededHeight` points before a page break. */
-function ensureSpace(state: RenderState, neededHeight: number): void {
-  if (state.y - neededHeight < MARGIN_BOTTOM) {
-    // will add page synchronously via the async wrapper
-    // This is called inside synchronous drawing — we check and mark
-    state.y = -1; // sentinel: caller must call addPage
-  }
-}
-
-function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
+function wrapText(
+  text: string,
+  font: PDFFont,
+  size: number,
+  maxWidth: number,
+): string[] {
   const words = text.split(/\s+/);
   const lines: string[] = [];
-  let line = '';
+  let line = "";
   for (const word of words) {
     const test = line ? `${line} ${word}` : word;
     if (font.widthOfTextAtSize(test, size) <= maxWidth) {
@@ -137,7 +133,6 @@ function wrapText(text: string, font: PDFFont, size: number, maxWidth: number): 
   return lines;
 }
 
-/** Draw wrapped text, auto-paging. Returns next Y position. */
 async function drawText(
   state: RenderState,
   text: string,
@@ -149,8 +144,9 @@ async function drawText(
     lineH?: number;
     spaceBefore?: number;
     spaceAfter?: number;
-  } = {}
+  } = {},
 ): Promise<void> {
+  if (!text) return;
   const font = opts.font ?? state.regular;
   const size = opts.size ?? SIZE_BODY;
   const color = opts.color ?? COLOR_BLACK;
@@ -173,7 +169,11 @@ async function drawText(
   if (opts.spaceAfter) state.y -= opts.spaceAfter;
 }
 
-async function drawDivider(state: RenderState, spaceBefore = 6, spaceAfter = 6): Promise<void> {
+async function drawDivider(
+  state: RenderState,
+  spaceBefore = 6,
+  spaceAfter = 6,
+): Promise<void> {
   if (state.y - 1 < MARGIN_BOTTOM) await addPage(state);
   state.y -= spaceBefore;
   currentPage(state).drawLine({
@@ -185,25 +185,39 @@ async function drawDivider(state: RenderState, spaceBefore = 6, spaceAfter = 6):
   state.y -= spaceAfter;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Document Title / Metadata Block
-// ─────────────────────────────────────────────────────────────────────────────
-async function drawMetadata(state: RenderState, doc: AutomizerDocument): Promise<void> {
-  const { title, date, author } = doc.metadata;
-  await drawText(state, title, { font: state.bold, size: SIZE_META_TITLE, color: COLOR_PRIMARY, spaceBefore: 8 });
-  await drawText(state, `${date} | ${author}`, { font: state.regular, size: SIZE_META_SUB, color: COLOR_GRAY, spaceBefore: 2, spaceAfter: 4 });
+async function drawMetadata(
+  state: RenderState,
+  doc: AutomizerDocument,
+): Promise<void> {
+  const metadata = doc.metadata || {};
+  const title = metadata.title || "";
+  const date = metadata.date || "";
+  const author = metadata.author || "";
+
+  await drawText(state, title, {
+    font: state.bold,
+    size: SIZE_META_TITLE,
+    color: COLOR_PRIMARY,
+    spaceBefore: 8,
+  });
+  await drawText(state, `${date} | ${author}`, {
+    font: state.regular,
+    size: SIZE_META_SUB,
+    color: COLOR_GRAY,
+    spaceBefore: 2,
+    spaceAfter: 4,
+  });
   await drawDivider(state);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Gauntlet Rendering
-// ─────────────────────────────────────────────────────────────────────────────
-async function renderGauntlet(state: RenderState, doc: GauntletDocument): Promise<void> {
+async function renderGauntlet(
+  state: RenderState,
+  doc: GauntletDocument,
+): Promise<void> {
   await drawMetadata(state, doc);
 
-  for (const section of doc.sections) {
-    // Company/section title
-    await drawText(state, section.sectionTitle.toUpperCase(), {
+  for (const section of doc.sections || []) {
+    await drawText(state, (section.sectionTitle || "").toUpperCase(), {
       font: state.bold,
       size: SIZE_COMPANY,
       color: COLOR_PRIMARY,
@@ -212,15 +226,13 @@ async function renderGauntlet(state: RenderState, doc: GauntletDocument): Promis
     });
     await drawDivider(state, 2, 8);
 
-    for (const challenge of section.challenges) {
-      // Check if we have enough room; if <30% of page body remains, new page
+    for (const challenge of section.challenges || []) {
       const bodyH = PAGE_H - MARGIN_TOP - MARGIN_BOTTOM;
       if (state.y < MARGIN_BOTTOM + bodyH * 0.3) {
         await addPage(state);
       }
 
-      // Challenge title
-      await drawText(state, challenge.title, {
+      await drawText(state, challenge.title || "", {
         font: state.bold,
         size: SIZE_CHALLENGE,
         color: COLOR_BLACK,
@@ -228,94 +240,223 @@ async function renderGauntlet(state: RenderState, doc: GauntletDocument): Promis
         spaceAfter: 6,
       });
 
-      // Scenario
-      await drawText(state, 'Scenario', { font: state.bold, size: SIZE_SECTION_HEAD, color: COLOR_PRIMARY, spaceAfter: 3 });
-      for (const para of challenge.scenario) {
+      await drawText(state, "Scenario", {
+        font: state.bold,
+        size: SIZE_SECTION_HEAD,
+        color: COLOR_PRIMARY,
+        spaceAfter: 3,
+      });
+      for (const para of challenge.scenario || []) {
         await drawText(state, para, { size: SIZE_BODY, spaceAfter: 4 });
       }
 
-      // Task
-      await drawText(state, 'Task', { font: state.bold, size: SIZE_SECTION_HEAD, color: COLOR_PRIMARY, spaceBefore: SECTION_GAP, spaceAfter: 3 });
-      await drawText(state, challenge.task, { size: SIZE_BODY, spaceAfter: 4 });
-
-      // Model Components
-      await drawText(state, 'Model Components', { font: state.bold, size: SIZE_SECTION_HEAD, color: COLOR_PRIMARY, spaceBefore: SECTION_GAP, spaceAfter: 4 });
-
-      // Goal
-      await drawText(state, '• Goal/Objective', { font: state.bold, size: SIZE_LIST_ITEM, indent: 8, spaceAfter: 2 });
-      await drawText(state, `○ ${challenge.modelComponents.goal}`, { size: SIZE_LIST_ITEM, indent: 20, spaceAfter: 4 });
-
-      // Relevant Factors
-      await drawText(state, '• Relevant Factors', { font: state.bold, size: SIZE_LIST_ITEM, indent: 8, spaceAfter: 2 });
-      for (const f of challenge.modelComponents.relevantFactors) {
-        await drawText(state, `○ ${f}`, { size: SIZE_LIST_ITEM, indent: 20, spaceAfter: 2 });
-      }
-      state.y -= 2;
-
-      // Possible Outcomes
-      await drawText(state, '• Possible Outcomes', { font: state.bold, size: SIZE_LIST_ITEM, indent: 8, spaceBefore: 2, spaceAfter: 2 });
-      for (const o of challenge.modelComponents.possibleOutcomes) {
-        await drawText(state, `○ ${o}`, { size: SIZE_LIST_ITEM, indent: 20, spaceAfter: 2 });
-      }
-
-      // Target Outcome
-      await drawText(state, `Target Outcome: ${challenge.targetOutcome.name}`, {
+      await drawText(state, "Task", {
         font: state.bold,
         size: SIZE_SECTION_HEAD,
         color: COLOR_PRIMARY,
         spaceBefore: SECTION_GAP,
         spaceAfter: 3,
       });
-      // Keep explanation with heading — check space
-      if (state.y < MARGIN_BOTTOM + 40) await addPage(state);
-      await drawText(state, challenge.targetOutcome.explanation, { size: SIZE_BODY, spaceAfter: 4 });
+      await drawText(state, challenge.task || "", {
+        size: SIZE_BODY,
+        spaceAfter: 4,
+      });
 
-      // Alternate Components
-      await drawText(state, 'Alternate Components', { font: state.bold, size: SIZE_SECTION_HEAD, color: COLOR_PRIMARY, spaceBefore: SECTION_GAP, spaceAfter: 4 });
+      if (challenge.modelComponents) {
+        await drawText(state, "Model Components", {
+          font: state.bold,
+          size: SIZE_SECTION_HEAD,
+          color: COLOR_PRIMARY,
+          spaceBefore: SECTION_GAP,
+          spaceAfter: 4,
+        });
 
-      if (challenge.alternateComponents.goals.length > 0) {
-        await drawText(state, '• Alternate Goal Options', { font: state.bold, size: SIZE_LIST_ITEM, indent: 8, spaceAfter: 2 });
-        for (const g of challenge.alternateComponents.goals) {
-          await drawText(state, `○ ${g}`, { size: SIZE_LIST_ITEM, indent: 20, spaceAfter: 2 });
+        if (challenge.modelComponents.goal) {
+          await drawText(state, "- Goal/Objective", {
+            font: state.bold,
+            size: SIZE_LIST_ITEM,
+            indent: 8,
+            spaceAfter: 2,
+          });
+          await drawText(state, `- ${challenge.modelComponents.goal}`, {
+            size: SIZE_LIST_ITEM,
+            indent: 20,
+            spaceAfter: 4,
+          });
         }
-      }
-      if (challenge.alternateComponents.factors.length > 0) {
-        await drawText(state, '• Alternate Factor Options', { font: state.bold, size: SIZE_LIST_ITEM, indent: 8, spaceBefore: 2, spaceAfter: 2 });
-        for (const f of challenge.alternateComponents.factors) {
-          await drawText(state, `○ ${f}`, { size: SIZE_LIST_ITEM, indent: 20, spaceAfter: 2 });
-        }
-      }
-      if (challenge.alternateComponents.outcomes.length > 0) {
-        await drawText(state, '• Alternate Outcome Options', { font: state.bold, size: SIZE_LIST_ITEM, indent: 8, spaceBefore: 2, spaceAfter: 2 });
-        for (const o of challenge.alternateComponents.outcomes) {
-          await drawText(state, `○ ${o}`, { size: SIZE_LIST_ITEM, indent: 20, spaceAfter: 2 });
-        }
-      }
 
-      // Hints
-      const hasHints =
-        challenge.hints.goalHints.length > 0 ||
-        challenge.hints.factorHints.length > 0 ||
-        challenge.hints.outcomeHints.length > 0;
+        if (challenge.modelComponents.relevantFactors?.length > 0) {
+          await drawText(state, "- Relevant Factors", {
+            font: state.bold,
+            size: SIZE_LIST_ITEM,
+            indent: 8,
+            spaceAfter: 2,
+          });
+          for (const f of challenge.modelComponents.relevantFactors) {
+            await drawText(state, `- ${f}`, {
+              size: SIZE_LIST_ITEM,
+              indent: 20,
+              spaceAfter: 2,
+            });
+          }
+          state.y -= 2;
+        }
 
-      if (hasHints) {
-        await drawText(state, 'Hints', { font: state.bold, size: SIZE_SECTION_HEAD, color: COLOR_PRIMARY, spaceBefore: SECTION_GAP, spaceAfter: 4 });
-        if (challenge.hints.goalHints.length > 0) {
-          await drawText(state, '• Goal Hints', { font: state.bold, size: SIZE_LIST_ITEM, indent: 8, spaceAfter: 2 });
-          for (const h of challenge.hints.goalHints) {
-            await drawText(state, `○ ${h}`, { size: SIZE_LIST_ITEM, indent: 20, spaceAfter: 2 });
+        if (challenge.modelComponents.possibleOutcomes?.length > 0) {
+          await drawText(state, "- Possible Outcomes", {
+            font: state.bold,
+            size: SIZE_LIST_ITEM,
+            indent: 8,
+            spaceBefore: 2,
+            spaceAfter: 2,
+          });
+          for (const o of challenge.modelComponents.possibleOutcomes) {
+            await drawText(state, `- ${o}`, {
+              size: SIZE_LIST_ITEM,
+              indent: 20,
+              spaceAfter: 2,
+            });
           }
         }
-        if (challenge.hints.factorHints.length > 0) {
-          await drawText(state, '• Factor Hints', { font: state.bold, size: SIZE_LIST_ITEM, indent: 8, spaceBefore: 2, spaceAfter: 2 });
-          for (const h of challenge.hints.factorHints) {
-            await drawText(state, `○ ${h}`, { size: SIZE_LIST_ITEM, indent: 20, spaceAfter: 2 });
+      }
+
+      if (challenge.targetOutcome) {
+        await drawText(
+          state,
+          `Target Outcome: ${challenge.targetOutcome.name || ""}`,
+          {
+            font: state.bold,
+            size: SIZE_SECTION_HEAD,
+            color: COLOR_PRIMARY,
+            spaceBefore: SECTION_GAP,
+            spaceAfter: 3,
+          },
+        );
+        if (state.y < MARGIN_BOTTOM + 40) await addPage(state);
+        await drawText(state, challenge.targetOutcome.explanation || "", {
+          size: SIZE_BODY,
+          spaceAfter: 4,
+        });
+      }
+
+      if (challenge.alternateComponents) {
+        await drawText(state, "Alternate Components", {
+          font: state.bold,
+          size: SIZE_SECTION_HEAD,
+          color: COLOR_PRIMARY,
+          spaceBefore: SECTION_GAP,
+          spaceAfter: 4,
+        });
+
+        if (challenge.alternateComponents.goals?.length > 0) {
+          await drawText(state, "- Alternate Goal Options", {
+            font: state.bold,
+            size: SIZE_LIST_ITEM,
+            indent: 8,
+            spaceAfter: 2,
+          });
+          for (const g of challenge.alternateComponents.goals) {
+            await drawText(state, `- ${g}`, {
+              size: SIZE_LIST_ITEM,
+              indent: 20,
+              spaceAfter: 2,
+            });
           }
         }
-        if (challenge.hints.outcomeHints.length > 0) {
-          await drawText(state, '• Outcome Hints', { font: state.bold, size: SIZE_LIST_ITEM, indent: 8, spaceBefore: 2, spaceAfter: 2 });
-          for (const h of challenge.hints.outcomeHints) {
-            await drawText(state, `○ ${h}`, { size: SIZE_LIST_ITEM, indent: 20, spaceAfter: 2 });
+        if (challenge.alternateComponents.factors?.length > 0) {
+          await drawText(state, "- Alternate Factor Options", {
+            font: state.bold,
+            size: SIZE_LIST_ITEM,
+            indent: 8,
+            spaceBefore: 2,
+            spaceAfter: 2,
+          });
+          for (const f of challenge.alternateComponents.factors) {
+            await drawText(state, `- ${f}`, {
+              size: SIZE_LIST_ITEM,
+              indent: 20,
+              spaceAfter: 2,
+            });
+          }
+        }
+        if (challenge.alternateComponents.outcomes?.length > 0) {
+          await drawText(state, "- Alternate Outcome Options", {
+            font: state.bold,
+            size: SIZE_LIST_ITEM,
+            indent: 8,
+            spaceBefore: 2,
+            spaceAfter: 2,
+          });
+          for (const o of challenge.alternateComponents.outcomes) {
+            await drawText(state, `- ${o}`, {
+              size: SIZE_LIST_ITEM,
+              indent: 20,
+              spaceAfter: 2,
+            });
+          }
+        }
+      }
+
+      if (challenge.hints) {
+        const hasHints =
+          (challenge.hints.goalHints?.length || 0) > 0 ||
+          (challenge.hints.factorHints?.length || 0) > 0 ||
+          (challenge.hints.outcomeHints?.length || 0) > 0;
+
+        if (hasHints) {
+          await drawText(state, "Hints", {
+            font: state.bold,
+            size: SIZE_SECTION_HEAD,
+            color: COLOR_PRIMARY,
+            spaceBefore: SECTION_GAP,
+            spaceAfter: 4,
+          });
+          if (challenge.hints.goalHints?.length > 0) {
+            await drawText(state, "- Goal Hints", {
+              font: state.bold,
+              size: SIZE_LIST_ITEM,
+              indent: 8,
+              spaceAfter: 2,
+            });
+            for (const h of challenge.hints.goalHints) {
+              await drawText(state, `- ${h}`, {
+                size: SIZE_LIST_ITEM,
+                indent: 20,
+                spaceAfter: 2,
+              });
+            }
+          }
+          if (challenge.hints.factorHints?.length > 0) {
+            await drawText(state, "- Factor Hints", {
+              font: state.bold,
+              size: SIZE_LIST_ITEM,
+              indent: 8,
+              spaceBefore: 2,
+              spaceAfter: 2,
+            });
+            for (const h of challenge.hints.factorHints) {
+              await drawText(state, `- ${h}`, {
+                size: SIZE_LIST_ITEM,
+                indent: 20,
+                spaceAfter: 2,
+              });
+            }
+          }
+          if (challenge.hints.outcomeHints?.length > 0) {
+            await drawText(state, "- Outcome Hints", {
+              font: state.bold,
+              size: SIZE_LIST_ITEM,
+              indent: 8,
+              spaceBefore: 2,
+              spaceAfter: 2,
+            });
+            for (const h of challenge.hints.outcomeHints) {
+              await drawText(state, `- ${h}`, {
+                size: SIZE_LIST_ITEM,
+                indent: 20,
+                spaceAfter: 2,
+              });
+            }
           }
         }
       }
@@ -323,20 +464,31 @@ async function renderGauntlet(state: RenderState, doc: GauntletDocument): Promis
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Hitchhiker's Guide Rendering
-// ─────────────────────────────────────────────────────────────────────────────
-const ROMAN_ORDER: HGSectionNumber[] = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
+const ROMAN_ORDER: HGSectionNumber[] = [
+  "I",
+  "II",
+  "III",
+  "IV",
+  "V",
+  "VI",
+  "VII",
+  "VIII",
+  "IX",
+];
 
-async function renderHitchhikersGuide(state: RenderState, doc: HitchhikersGuide): Promise<void> {
+async function renderHitchhikersGuide(
+  state: RenderState,
+  doc: HitchhikersGuide,
+): Promise<void> {
   await drawMetadata(state, doc);
 
-  for (let ci = 0; ci < doc.challenges.length; ci++) {
-    const challenge = doc.challenges[ci];
+  const challenges = doc.challenges || (doc as any).sections || [];
+
+  for (let ci = 0; ci < challenges.length; ci++) {
+    const challenge = challenges[ci];
     if (ci > 0) await addPage(state);
 
-    // Challenge title
-    await drawText(state, challenge.title, {
+    await drawText(state, challenge.title || `Challenge ${ci + 1}`, {
       font: state.bold,
       size: SIZE_CHALLENGE + 1,
       color: COLOR_PRIMARY,
@@ -345,14 +497,15 @@ async function renderHitchhikersGuide(state: RenderState, doc: HitchhikersGuide)
     });
     await drawDivider(state, 0, 10);
 
+    const sectionsMap = challenge.sections || challenge;
+
     for (const numeral of ROMAN_ORDER) {
-      const section = challenge.sections[numeral];
+      const section = sectionsMap[numeral];
       if (!section) continue;
 
-      // Section heading — must stay with first subsection
       if (state.y < MARGIN_BOTTOM + 60) await addPage(state);
 
-      await drawText(state, `${numeral}. ${section.title}`, {
+      await drawText(state, `${numeral}. ${section.title || ""}`, {
         font: state.bold,
         size: SIZE_SECTION_HEAD,
         color: COLOR_PRIMARY,
@@ -360,35 +513,35 @@ async function renderHitchhikersGuide(state: RenderState, doc: HitchhikersGuide)
         spaceAfter: 4,
       });
 
-      for (const sub of section.subsections) {
+      const subsections = section.subsections || (section as any).steps || [];
+      for (const sub of subsections) {
         if (state.y < MARGIN_BOTTOM + 30) await addPage(state);
 
-        // Alpha subsection label
-        await drawText(state, `${sub.label}. ${sub.content}`, {
-          font: sub.points.length > 0 ? state.bold : state.regular,
+        const subLabel = sub.label ? `${sub.label}. ` : "";
+        const subContent = sub.content || (sub as any).text || "";
+        const points = sub.points || [];
+
+        await drawText(state, `${subLabel}${subContent}`, {
+          font: points.length > 0 ? state.bold : state.regular,
           size: SIZE_BODY,
           indent: 12,
-          spaceAfter: sub.points.length > 0 ? 2 : 4,
+          spaceAfter: points.length > 0 ? 2 : 4,
         });
 
-        // Numbered points
-        for (let pi = 0; pi < sub.points.length; pi++) {
+        for (let pi = 0; pi < points.length; pi++) {
           if (state.y < MARGIN_BOTTOM + LINE_H_BODY) await addPage(state);
-          await drawText(state, `${pi + 1}. ${sub.points[pi]}`, {
+          await drawText(state, `${pi + 1}. ${points[pi]}`, {
             size: SIZE_BODY,
             indent: 24,
             spaceAfter: 2,
           });
         }
-        if (sub.points.length > 0) state.y -= 2;
+        if (points.length > 0) state.y -= 2;
       }
     }
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Entry Point
-// ─────────────────────────────────────────────────────────────────────────────
 export async function renderToPDF(doc: AutomizerDocument): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
 
@@ -410,16 +563,16 @@ export async function renderToPDF(doc: AutomizerDocument): Promise<Uint8Array> {
     bold,
     italic,
     boldItalic,
-    headerTitle: doc.metadata.headerTitle,
+    headerTitle: doc.metadata?.headerTitle || "",
     pageCount: 1,
   };
 
   drawPageChrome(state);
 
-  if (doc.documentType === 'gauntlet') {
-    await renderGauntlet(state, doc);
+  if (doc.documentType === "gauntlet") {
+    await renderGauntlet(state, doc as GauntletDocument);
   } else {
-    await renderHitchhikersGuide(state, doc);
+    await renderHitchhikersGuide(state, doc as HitchhikersGuide);
   }
 
   return pdfDoc.save();

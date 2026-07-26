@@ -1,17 +1,34 @@
+// components/Automizer/HitchhikersReview.tsx
 "use client";
 
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
-import type { HitchhikersGuide, HGChallenge, HGSection, HGSubsection, HGSectionNumber } from '@/lib/automizer/types';
-import { HG_SECTION_TITLES } from '@/lib/automizer/types';
-import styles from './Automizer.module.css';
+import React, { useState } from "react";
+import { ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import type {
+  HitchhikersGuide,
+  HGChallenge,
+  HGSection,
+  HGSubsection,
+  HGSectionNumber,
+} from "@/lib/automizer/types";
+import { HG_SECTION_TITLES } from "@/lib/automizer/types";
+import styles from "./Automizer.module.css";
 
 interface HitchhikersReviewProps {
   document: HitchhikersGuide;
-  onChange: (doc: HitchhikersGuide) => void;
+  onChange: (doc: HitchhikersGuide) => void; // eslint-disable-line no-unused-vars
 }
 
-const ROMAN_ORDER: HGSectionNumber[] = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
+const ROMAN_ORDER: HGSectionNumber[] = [
+  "I",
+  "II",
+  "III",
+  "IV",
+  "V",
+  "VI",
+  "VII",
+  "VIII",
+  "IX",
+];
 
 function SubsectionEditor({
   sub,
@@ -19,7 +36,7 @@ function SubsectionEditor({
   onRemove,
 }: {
   sub: HGSubsection;
-  onChange: (updated: HGSubsection) => void;
+  onChange: (updatedSub: HGSubsection) => void; // eslint-disable-line no-unused-vars
   onRemove: () => void;
 }) {
   return (
@@ -33,7 +50,11 @@ function SubsectionEditor({
           onChange={(e) => onChange({ ...sub, content: e.target.value })}
           placeholder="Subsection content..."
         />
-        <button className={styles.removeBtn} onClick={onRemove} aria-label="Remove subsection">
+        <button
+          className={styles.removeBtn}
+          onClick={onRemove}
+          aria-label="Remove subsection"
+        >
           <Trash2 size={12} />
         </button>
       </div>
@@ -54,7 +75,12 @@ function SubsectionEditor({
             />
             <button
               className={styles.removeBtn}
-              onClick={() => onChange({ ...sub, points: sub.points.filter((_, idx) => idx !== i) })}
+              onClick={() =>
+                onChange({
+                  ...sub,
+                  points: sub.points.filter((_, idx) => idx !== i),
+                })
+              }
               aria-label="Remove point"
             >
               <Trash2 size={11} />
@@ -63,7 +89,7 @@ function SubsectionEditor({
         ))}
         <button
           className={styles.addItemBtn}
-          onClick={() => onChange({ ...sub, points: [...sub.points, ''] })}
+          onClick={() => onChange({ ...sub, points: [...sub.points, ""] })}
         >
           <Plus size={12} /> Add Point
         </button>
@@ -79,7 +105,7 @@ function SectionEditor({
 }: {
   numeral: HGSectionNumber;
   section: HGSection | undefined;
-  onChange: (updated: HGSection) => void;
+  onChange: (updatedSec: HGSection) => void; // eslint-disable-line no-unused-vars
 }) {
   const [expanded, setExpanded] = useState(!!section);
   const current: HGSection = section ?? {
@@ -89,12 +115,12 @@ function SectionEditor({
   };
 
   const addSubsection = () => {
-    const nextLabel = String.fromCharCode(65 + current.subsections.length); // A, B, C...
+    const nextLabel = String.fromCharCode(65 + current.subsections.length);
     onChange({
       ...current,
       subsections: [
         ...current.subsections,
-        { label: nextLabel, content: '', points: [] },
+        { label: nextLabel, content: "", points: [] },
       ],
     });
   };
@@ -102,7 +128,7 @@ function SectionEditor({
   return (
     <div className={styles.hgSectionCard}>
       <div
-        className={`${styles.hgSectionHeader} ${!section ? styles.hgSectionMissing : ''}`}
+        className={`${styles.hgSectionHeader} ${!section ? styles.hgSectionMissing : ""}`}
         onClick={() => setExpanded(!expanded)}
       >
         <span className={styles.hgRomanNumeral}>{numeral}.</span>
@@ -117,15 +143,17 @@ function SectionEditor({
             <SubsectionEditor
               key={i}
               sub={sub}
-              onChange={(updated) => {
+              onChange={(updatedSub) => {
                 const subs = [...current.subsections];
-                subs[i] = updated;
+                subs[i] = updatedSub;
                 onChange({ ...current, subsections: subs });
               }}
               onRemove={() =>
                 onChange({
                   ...current,
-                  subsections: current.subsections.filter((_, idx) => idx !== i),
+                  subsections: current.subsections.filter(
+                    (_, idx) => idx !== i,
+                  ),
                 })
               }
             />
@@ -145,14 +173,17 @@ function ChallengeEditor({
   onRemove,
 }: {
   challenge: HGChallenge;
-  onChange: (updated: HGChallenge) => void;
+  onChange: (updatedChal: HGChallenge) => void; // eslint-disable-line no-unused-vars
   onRemove: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);
 
   return (
     <div className={styles.challengeCard}>
-      <div className={styles.challengeCardHeader} onClick={() => setExpanded(!expanded)}>
+      <div
+        className={styles.challengeCardHeader}
+        onClick={() => setExpanded(!expanded)}
+      >
         <input
           type="text"
           value={challenge.title}
@@ -164,7 +195,10 @@ function ChallengeEditor({
         <div className={styles.challengeCardActions}>
           <button
             className={styles.removeCardBtn}
-            onClick={(e) => { e.stopPropagation(); onRemove(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
             aria-label="Remove challenge"
           >
             <Trash2 size={14} />
@@ -180,10 +214,10 @@ function ChallengeEditor({
               key={numeral}
               numeral={numeral}
               section={challenge.sections[numeral]}
-              onChange={(updated) =>
+              onChange={(updatedSec) =>
                 onChange({
                   ...challenge,
-                  sections: { ...challenge.sections, [numeral]: updated },
+                  sections: { ...challenge.sections, [numeral]: updatedSec },
                 })
               }
             />
@@ -194,7 +228,10 @@ function ChallengeEditor({
   );
 }
 
-export default function HitchhikersReview({ document: doc, onChange }: HitchhikersReviewProps) {
+export default function HitchhikersReview({
+  document: doc,
+  onChange,
+}: HitchhikersReviewProps) {
   const addChallenge = () => {
     onChange({
       ...doc,
@@ -202,7 +239,7 @@ export default function HitchhikersReview({ document: doc, onChange }: Hitchhike
         ...doc.challenges,
         {
           id: `hg-challenge-new-${Date.now()}`,
-          title: 'New Challenge',
+          title: "New Challenge",
           sections: {},
         },
       ],
@@ -213,9 +250,12 @@ export default function HitchhikersReview({ document: doc, onChange }: Hitchhike
     <div className={styles.reviewContainer}>
       <div className={styles.reviewSection}>
         <div className={styles.reviewSectionHeader}>
-          <h4 className={styles.reviewSectionTitle}>Hitchhiker&apos;s Guide Challenges</h4>
+          <h4 className={styles.reviewSectionTitle}>
+            Hitchhiker&apos;s Guide Challenges
+          </h4>
           <span className={styles.reviewSectionCount}>
-            {doc.challenges.length} challenge{doc.challenges.length !== 1 ? 's' : ''}
+            {doc.challenges.length} challenge
+            {doc.challenges.length !== 1 ? "s" : ""}
           </span>
         </div>
 
@@ -223,13 +263,16 @@ export default function HitchhikersReview({ document: doc, onChange }: Hitchhike
           <ChallengeEditor
             key={challenge.id}
             challenge={challenge}
-            onChange={(updated) => {
+            onChange={(updatedChal) => {
               const newChallenges = [...doc.challenges];
-              newChallenges[i] = updated;
+              newChallenges[i] = updatedChal;
               onChange({ ...doc, challenges: newChallenges });
             }}
             onRemove={() =>
-              onChange({ ...doc, challenges: doc.challenges.filter((_, idx) => idx !== i) })
+              onChange({
+                ...doc,
+                challenges: doc.challenges.filter((_, idx) => idx !== i),
+              })
             }
           />
         ))}
