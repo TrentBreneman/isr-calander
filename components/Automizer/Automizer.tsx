@@ -173,24 +173,31 @@ export default function Automizer({ onClose }: AutomizerProps) {
     setMetadata(makeDefaultMetadata(wp));
   };
 
-  const handleFiles = async (files: FileList) => {
-    const file = files[0];
+  const handleFiles = async (files: FileList | null) => {
+    const file = files?.[0];
     if (!file) return;
+
     const name = file.name.toLowerCase();
-    if (
-      !name.endsWith(".docx") &&
-      !name.endsWith(".pdf") &&
-      !name.endsWith(".txt") &&
-      !name.endsWith(".md")
-    ) {
+    const isAllowed =
+      name.endsWith(".docx") ||
+      name.endsWith(".pdf") ||
+      name.endsWith(".txt") ||
+      name.endsWith(".md");
+
+    if (!isAllowed) {
       setAnalyzeError("Please upload a .docx, .pdf, .txt, or .md file.");
       return;
     }
+
     setUploadedFile(file);
     setAnalyzeError(null);
+    setSourceText("");
+
     try {
       const text = await extractText(file);
-      setSourceText(text);
+      setSourceText(
+        text || "No text could be extracted from the selected file.",
+      );
     } catch (e: unknown) {
       const msg =
         e instanceof Error ? e.message : "Failed to extract file text.";
@@ -544,8 +551,7 @@ export default function Automizer({ onClose }: AutomizerProps) {
                 onDrop={(e: DragEvent) => {
                   preventDefaults(e);
                   setIsHighlight(false);
-                  if (e.dataTransfer.files.length)
-                    handleFiles(e.dataTransfer.files);
+                  handleFiles(e.dataTransfer.files);
                 }}
                 onClick={() => fileInputRef.current?.click()}
               >
@@ -570,9 +576,8 @@ export default function Automizer({ onClose }: AutomizerProps) {
                   ref={fileInputRef}
                   className={styles.hiddenInput}
                   accept=".docx,.pdf,.txt,.md"
-                  onChange={(e) =>
-                    e.target.files && handleFiles(e.target.files)
-                  }
+                  multiple={false}
+                  onChange={(e) => handleFiles(e.target.files)}
                 />
               </div>
             )}

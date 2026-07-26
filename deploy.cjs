@@ -1,5 +1,4 @@
 const FtpDeploy = require("ftp-deploy");
-const ftpDeploy = new FtpDeploy();
 
 const config = {
   user: process.env.FTP_USER,
@@ -7,7 +6,7 @@ const config = {
   host: process.env.FTP_HOST,
   port: parseInt(process.env.FTP_PORT) || 21,
   localRoot: __dirname + "/out",
-  remoteRoot: "/", // Deploy directly to the root directory
+  remoteRoot: "/",
   include: ["*", "**/*", ".*"],
   exclude: [".git/**", ".DS_Store"],
   deleteRemote: true,
@@ -15,7 +14,13 @@ const config = {
   sftp: false,
 };
 
-ftpDeploy
-  .deploy(config)
-  .then((res) => console.log("🚀 Deployment successful to israutomizer.com"))
-  .catch((err) => console.error("❌ Deployment failed:", err));
+(async () => {
+  try {
+    const ftpDeploy = new FtpDeploy();
+    await ftpDeploy.deploy(config);
+    console.log("🚀 Deployment successful to israutomizer.com");
+  } catch (err) {
+    console.error("❌ Deployment failed:", err);
+    process.exitCode = 1;
+  }
+})();

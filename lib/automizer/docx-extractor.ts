@@ -33,6 +33,16 @@ export async function extractPdfText(file: File): Promise<string> {
   const pdfjs = await import("pdfjs-dist");
   const arrayBuffer = await file.arrayBuffer();
 
+  const workerSrc = new URL(
+    "pdfjs-dist/legacy/build/pdf.worker.mjs",
+    import.meta.url,
+  ).toString();
+  (
+    pdfjs as typeof pdfjs & { GlobalWorkerOptions?: { workerSrc?: string } }
+  ).GlobalWorkerOptions = {
+    workerSrc,
+  };
+
   const loadingTask = pdfjs.getDocument({
     data: arrayBuffer,
   } as never);
