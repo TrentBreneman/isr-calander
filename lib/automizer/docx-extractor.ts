@@ -30,18 +30,22 @@ export async function extractDocxText(file: File): Promise<string> {
  * Extract plain text from a PDF file using pdfjs-dist.
  */
 export async function extractPdfText(file: File): Promise<string> {
-  const pdfjs = await import("pdfjs-dist");
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const arrayBuffer = await file.arrayBuffer();
 
   const workerSrc = new URL(
     "pdfjs-dist/legacy/build/pdf.worker.mjs",
     import.meta.url,
   ).toString();
-  (
-    pdfjs as typeof pdfjs & { GlobalWorkerOptions?: { workerSrc?: string } }
-  ).GlobalWorkerOptions = {
-    workerSrc,
-  };
+
+  const workerOptions = (
+    pdfjs as typeof pdfjs & {
+      GlobalWorkerOptions?: { workerSrc?: string };
+    }
+  ).GlobalWorkerOptions;
+  if (workerOptions) {
+    workerOptions.workerSrc = workerSrc;
+  }
 
   const loadingTask = pdfjs.getDocument({
     data: arrayBuffer,
@@ -61,7 +65,17 @@ export async function extractPdfText(file: File): Promise<string> {
         return "";
       })
       .join(" ");
-    pages.push(text.trim());
+    const normalized = text
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2013\u2014]/g, "-")
+      .replace(/\u00A0/g, " ")
+      .replace(/\uFB03/g, "ffi")
+      .replace(/\uFB02/g, "fl")
+      .replace(/\uFB01/g, "fi")
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "");
+    pages.push(normalized.trim());
   }
 
   return pages.filter(Boolean).join("\n\n").trim();

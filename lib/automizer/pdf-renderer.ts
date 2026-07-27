@@ -111,13 +111,27 @@ function drawPageChrome(state: RenderState) {
   });
 }
 
+function sanitizeText(text: string): string {
+  return text
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, "-")
+    .replace(/\u00A0/g, " ")
+    .replace(/\uFB03/g, "ffi")
+    .replace(/\uFB02/g, "fl")
+    .replace(/\uFB01/g, "fi")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function wrapText(
   text: string,
   font: PDFFont,
   size: number,
   maxWidth: number,
 ): string[] {
-  const words = text.split(/\s+/);
+  const sanitized = sanitizeText(text);
+  const words = sanitized.split(/\s+/);
   const lines: string[] = [];
   let line = "";
   for (const word of words) {
@@ -147,6 +161,8 @@ async function drawText(
   } = {},
 ): Promise<void> {
   if (!text) return;
+  const sanitizedText = sanitizeText(text);
+  if (!sanitizedText) return;
   const font = opts.font ?? state.regular;
   const size = opts.size ?? SIZE_BODY;
   const color = opts.color ?? COLOR_BLACK;
@@ -157,7 +173,7 @@ async function drawText(
 
   if (opts.spaceBefore) state.y -= opts.spaceBefore;
 
-  const lines = wrapText(text, font, size, maxW);
+  const lines = wrapText(sanitizedText, font, size, maxW);
   for (const line of lines) {
     if (state.y - lineH < MARGIN_BOTTOM) {
       await addPage(state);
@@ -476,6 +492,30 @@ const ROMAN_ORDER: HGSectionNumber[] = [
   "IX",
 ];
 
+function getHitchhikerSections(
+  challenge: HitchhikersGuide["challenges"][number],
+) {
+  const source = (challenge as any)?.sections ?? challenge ?? {};
+
+  if (Array.isArray(source)) {
+    return source.filter(Boolean);
+  }
+
+  if (source && typeof source === "object") {
+    return ROMAN_ORDER.map((numeral) => {
+      const section = source[numeral];
+      if (!section) return null;
+      return {
+        ...section,
+        number: section.number || numeral,
+        title: section.title || "",
+      };
+    }).filter(Boolean);
+  }
+
+  return [];
+}
+
 async function renderHitchhikersGuide(
   state: RenderState,
   doc: HitchhikersGuide,
@@ -497,10 +537,10 @@ async function renderHitchhikersGuide(
     });
     await drawDivider(state, 0, 10);
 
-    const sectionsMap = challenge.sections || challenge;
+    const sections = getHitchhikerSections(challenge);
 
-    for (const numeral of ROMAN_ORDER) {
-      const section = sectionsMap[numeral];
+    for (const section of sections) {
+      const numeral = section.number || "";
       if (!section) continue;
 
       if (state.y < MARGIN_BOTTOM + 60) await addPage(state);

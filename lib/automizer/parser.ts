@@ -263,8 +263,14 @@ function buildFallbackHitchhikersGuide(
   text: string,
   metadata: DocumentMetadata,
 ): Partial<HitchhikersGuide> {
-  const lines = text
-    .split(/\r?\n/)
+  const cleanedText = text
+    .replace(/\r/g, "")
+    .replace(/\s+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  const lines = cleanedText
+    .split(/\n/)
     .map((line) => line.trim())
     .filter(Boolean);
 
@@ -302,9 +308,10 @@ function buildFallbackHitchhikersGuide(
     }
   };
 
-  for (const line of lines) {
+  for (let index = 0; index < lines.length; index += 1) {
+    let line = lines[index];
     const sectionMatch = line.match(
-      /^(IX|VIII|VII|VI|V|IV|III|II|I)(?:\.|:)?\s*(.*)$/i,
+      /^(IX|VIII|VII|VI|V|IV|III|II|I)(?:\.|:|\s|-)?\s*(.*)$/i,
     );
     if (sectionMatch) {
       flushSubsection();
@@ -327,6 +334,20 @@ function buildFallbackHitchhikersGuide(
       const label = subsectionMatch[1].toUpperCase();
       const content = subsectionMatch[2].trim();
       ensureSubsection(label, content);
+      continue;
+    }
+
+    const compactSectionMatch = line.match(/^(IX|VIII|VII|VI|V|IV|III|II|I)\s+(.+)$/i);
+    if (compactSectionMatch && !currentSubsection) {
+      flushSubsection();
+      const sectionNumber =
+        compactSectionMatch[1].toUpperCase() as keyof typeof sections;
+      currentSection = sectionNumber;
+      sections[sectionNumber] = {
+        number: sectionNumber,
+        title: compactSectionMatch[2].trim() || "Section",
+        subsections: [],
+      };
       continue;
     }
 

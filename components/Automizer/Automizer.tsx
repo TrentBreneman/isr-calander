@@ -255,7 +255,8 @@ export default function Automizer({ onClose }: AutomizerProps) {
 
       if (fmt === "pdf" || fmt === "both") {
         const pdfBytes = await generatePDF(document);
-        const blob = new Blob([pdfBytes as unknown as Blob], {
+        const pdfBuffer = Uint8Array.from(pdfBytes);
+        const blob = new Blob([pdfBuffer], {
           type: "application/pdf",
         });
         setPdfUrl(URL.createObjectURL(blob));
