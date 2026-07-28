@@ -82,10 +82,7 @@ async function runParse(
   }
 }
 
-async function generatePDF(doc: AutomizerDocument): Promise<void> {
-  const { renderToPDF } = await import("@/lib/automizer/pdf-renderer");
-  await renderToPDF(doc);
-}
+import { generatePdfOnClient } from "@/lib/automizer/client-pdf-generator";
 
 async function generateDOCX(doc: AutomizerDocument): Promise<Blob> {
   const { renderToDOCX } = await import("@/lib/automizer/docx-renderer");
@@ -254,9 +251,8 @@ export default function Automizer({ onClose }: AutomizerProps) {
       const fmt = metadata.outputFormat;
 
       if (fmt === "pdf" || fmt === "both") {
-        await generatePDF(document);
-        // PDF download is handled by the renderer, but we can signal completion.
-        setPdfUrl("#generated");
+        generatePdfOnClient(document);
+        setPdfUrl("#generated"); // Signal completion for UI
       }
 
       if (fmt === "docx" || fmt === "both") {
@@ -769,14 +765,9 @@ export default function Automizer({ onClose }: AutomizerProps) {
                       <FileText size={20} />
                     </div>
                     <p className={styles.downloadCardTitle}>PDF Document</p>
-                    <a
-                      href={pdfUrl}
-                      download={`${safeFilename}.pdf`}
-                      className={`${styles.downloadLink} ${styles.downloadLinkPDF}`}
-                      id="download-pdf"
-                    >
-                      <Download size={14} /> Download PDF
-                    </a>
+                    <div className={styles.downloadStarted}>
+                      <Download size={14} /> Download Started
+                    </div>
                   </div>
                 )}
                 {docxUrl && (
