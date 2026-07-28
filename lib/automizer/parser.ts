@@ -7,6 +7,11 @@ import {
   ParseError,
   HGParseResult,
   GauntletChallengeModel,
+  HG_SECTION_TITLES,
+  HGSectionNumber,
+  HGChallenge,
+  HGSection,
+  HGSubsection,
 } from "./types";
 import { aiEnhanceHitchhikersGuide, isAIAvailable } from "./ai-parser";
 
@@ -24,218 +29,241 @@ export function parseGauntlet(
   const errors: ParseError[] = [];
   const warnings: ParseError[] = [];
   const ambiguousBlocks: string[] = [];
+  const challenges: GauntletChallengeModel[] = [];
 
-  const lines = text
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
+  const headingAliases: { [key: string]: string[] } = {
+    title: ["challenge title", "challenge"],
+    scenario: ["scenario", "case", "case scenario", "decision context"],
+    task: ["task", "assignment", "challenge task", "participant task"],
+    goal: ["goal", "goal/objective", "correct goal", "objective"],
+    relevantFactors: [
+      "relevant factors",
+      "factors",
+      "correct factors",
+      "key factors",
+    ],
+    possibleOutcomes: [
+      "possible outcomes",
+      "outcomes",
+      "correct outcomes",
+      "decision options",
+    ],
+    targetOutcome: [
+      "target outcome",
+      "correct outcome",
+      "recommended outcome",
+      "answer",
+    ],
+    explanation: ["explanation", "target outcome explanation"],
+    alternateGoals: [
+      "alternate goal options",
+      "alternate goals",
+      "incorrect goals",
+    ],
+    alternateFactors: [
+      "alternate factor options",
+      "alternate factors",
+      "incorrect factors",
+    ],
+    alternateOutcomes: [
+      "alternate outcome options",
+      "alternate outcomes",
+      "incorrect outcomes",
+    ],
+    goalHints: ["goal hints"],
+    factorHints: ["factor hints"],
+    outcomeHints: ["outcome hints"],
+  };
 
-  let currentTitle = "Untitled Challenge";
-  const scenarioLines: string[] = [];
-  let taskText = "";
-  let goalText = "";
-  const factors: string[] = [];
-  const outcomes: string[] = [];
-  let targetName = "";
-  let targetExplanation = "";
-  const altGoals: string[] = [];
-  const altFactors: string[] = [];
-  const altOutcomes: string[] = [];
-  const goalHints: string[] = [];
-  const factorHints: string[] = [];
-  const outcomeHints: string[] = [];
+  const aliasMap = new Map<string, string>();
+  for (const canonical in headingAliases) {
+    for (const alias of headingAliases[canonical]) {
+      aliasMap.set(alias, canonical);
+    }
+  }
 
-  let currentMode: string | null = null;
+  let currentChallenge: Partial<GauntletChallengeModel> = {};
+  let currentSection: string | null = null;
+  let titleBuffer: string[] = [];
+
+  const hasContent = (c: Partial<GauntletChallengeModel>) =>
+    c.scenario?.length || c.task || c.modelComponents?.goal;
+
+  const pushChallenge = () => {
+    if (hasContent(currentChallenge)) {
+      if (titleBuffer.length > 0 && !currentChallenge.title) {
+        currentChallenge.title = titleBuffer.join(" ");
+      }
+      titleBuffer = [];
+
+      if (!currentChallenge.title) {
+        currentChallenge.title = `Untitled Challenge ${challenges.length + 1}`;
+        warnings.push({
+          code: "G001",
+          message: "A challenge was found with no clear title.",
+        });
+      }
+
+      challenges.push({
+        id: `challenge-${Date.now()}-${challenges.length}`,
+        title: "Untitled",
+        challengeType: "standard",
+        scenario: [],
+        task: "",
+        modelComponents: { goal: "", relevantFactors: [], possibleOutcomes: [] },
+        targetOutcome: { name: "", explanation: "" },
+        alternateComponents: { goals: [], factors: [], outcomes: [] },
+        hints: { goalHints: [], factorHints: [], outcomeHints: [] },
+        ...currentChallenge,
+      } as GauntletChallengeModel);
+    }
+    currentChallenge = {};
+  };
+
+  const lines = text.split(/\r?\n/);
 
   for (const line of lines) {
-    const upper = line.toUpperCase();
-    if (
-      upper.startsWith("CHALLENGE TITLE:") ||
-      upper.startsWith("CHALLENGE:")
-    ) {
-      currentTitle = line
-        .replace(/^(CHALLENGE TITLE:|CHALLENGE:)\s*/i, "")
-        .trim();
-      currentMode = null;
-      continue;
+    let trimmedLine = line.trim();
+    if (!trimmedLine) continue;
+
+    const lowerLine = trimmedLine.toLowerCase().replace(/[:*]/g, "").trim();
+    const canonical = aliasMap.get(lowerLine.split(/\s+/).join(" "));
+    
+    let content = "";
+    const match = trimmedLine.match(/^([a-zA-Z\s/]+)[:\s-]+(.*)/);
+    if(match && aliasMap.has(match[1].toLowerCase().trim())) {
+      content = match[2].trim();
     }
-    if (upper.startsWith("SCENARIO:")) {
-      currentMode = "scenario";
-      continue;
+
+
+    if (canonical) {
+      if (canonical === "scenario" && hasContent(currentChallenge)) {
+        pushChallenge();
+      }
+      currentSection = canonical;
+      if (currentSection === "title" && titleBuffer.length > 0) {
+        currentChallenge.title = titleBuffer.join(" ");
+        titleBuffer = [];
+      }
+      if (content) {
+        trimmedLine = content;
+      } else {
+        continue;
+      }
     }
-    if (upper.startsWith("TASK:")) {
-      currentMode = "task";
-      continue;
-    }
-    if (upper.startsWith("GOAL:")) {
-      currentMode = "goal";
-      continue;
-    }
-    if (upper.startsWith("RELEVANT FACTORS:")) {
-      currentMode = "factors";
-      continue;
-    }
-    if (upper.startsWith("POSSIBLE OUTCOMES:")) {
-      currentMode = "outcomes";
-      continue;
-    }
-    if (upper.startsWith("TARGET OUTCOME:")) {
-      currentMode = "target";
-      continue;
-    }
-    if (
-      upper.startsWith("EXPLANATION:") ||
-      upper.startsWith("TARGET OUTCOME EXPLANATION:")
-    ) {
-      currentMode = "explanation";
-      continue;
-    }
-    if (upper.startsWith("ALTERNATE GOALS:")) {
-      currentMode = "altGoals";
-      continue;
-    }
-    if (upper.startsWith("ALTERNATE FACTORS:")) {
-      currentMode = "altFactors";
-      continue;
-    }
-    if (upper.startsWith("ALTERNATE OUTCOMES:")) {
-      currentMode = "altOutcomes";
-      continue;
-    }
-    if (upper.startsWith("GOAL HINTS:")) {
-      currentMode = "goalHints";
-      continue;
-    }
-    if (upper.startsWith("FACTOR HINTS:")) {
-      currentMode = "factorHints";
-      continue;
-    }
-    if (upper.startsWith("OUTCOME HINTS:")) {
-      currentMode = "outcomeHints";
+
+    if (!currentSection) {
+      titleBuffer.push(trimmedLine);
       continue;
     }
 
-    if (currentMode === "scenario") scenarioLines.push(line);
-    else if (currentMode === "task")
-      taskText = taskText ? `${taskText} ${line}` : line;
-    else if (currentMode === "goal")
-      goalText = goalText ? `${goalText} ${line}` : line;
-    else if (currentMode === "factors")
-      factors.push(line.replace(/^[-*]\s*/, ""));
-    else if (currentMode === "outcomes")
-      outcomes.push(line.replace(/^[-*]\s*/, ""));
-    else if (currentMode === "target")
-      targetName = targetName ? `${targetName} ${line}` : line;
-    else if (currentMode === "explanation")
-      targetExplanation = targetExplanation
-        ? `${targetExplanation} ${line}`
-        : line;
-    else if (currentMode === "altGoals")
-      altGoals.push(line.replace(/^[-*]\s*/, ""));
-    else if (currentMode === "altFactors")
-      altFactors.push(line.replace(/^[-*]\s*/, ""));
-    else if (currentMode === "altOutcomes")
-      altOutcomes.push(line.replace(/^[-*]\s*/, ""));
-    else if (currentMode === "goalHints")
-      goalHints.push(line.replace(/^[-*]\s*/, ""));
-    else if (currentMode === "factorHints")
-      factorHints.push(line.replace(/^[-*]\s*/, ""));
-    else if (currentMode === "outcomeHints")
-      outcomeHints.push(line.replace(/^[-*]\s*/, ""));
+    const listValue = trimmedLine.replace(/^[-*]\s*/, "").trim();
+
+    switch (currentSection) {
+      case "title":
+        currentChallenge.title =
+          (currentChallenge.title || "") + " " + trimmedLine;
+        break;
+      case "scenario":
+        currentChallenge.scenario = [...(currentChallenge.scenario || []), trimmedLine];
+        break;
+      case "task":
+        currentChallenge.task = (currentChallenge.task || "") + " " + trimmedLine;
+        break;
+      case "goal":
+        currentChallenge.modelComponents = {
+          ...(currentChallenge.modelComponents || { relevantFactors: [], possibleOutcomes: [] }),
+          goal: (currentChallenge.modelComponents?.goal || "") + " " + trimmedLine,
+        };
+        break;
+      case "relevantFactors":
+        currentChallenge.modelComponents = {
+          ...(currentChallenge.modelComponents || { goal: "", possibleOutcomes: [] }),
+          relevantFactors: [
+            ...(currentChallenge.modelComponents?.relevantFactors || []),
+            listValue,
+          ],
+        };
+        break;
+      case "possibleOutcomes":
+        currentChallenge.modelComponents = {
+          ...(currentChallenge.modelComponents || { goal: "", relevantFactors: [] }),
+          possibleOutcomes: [
+            ...(currentChallenge.modelComponents?.possibleOutcomes || []),
+            listValue,
+          ],
+        };
+        break;
+      case "targetOutcome":
+        currentChallenge.targetOutcome = {
+          ...(currentChallenge.targetOutcome || { explanation: "" }),
+          name: (currentChallenge.targetOutcome?.name || "") + " " + trimmedLine,
+        };
+        break;
+      case "explanation":
+        currentChallenge.targetOutcome = {
+          ...(currentChallenge.targetOutcome || { name: "" }),
+          explanation: (currentChallenge.targetOutcome?.explanation || "") + " " + trimmedLine,
+        };
+        break;
+      case "alternateGoals":
+        currentChallenge.alternateComponents = {
+          ...(currentChallenge.alternateComponents || { factors: [], outcomes: [] }),
+          goals: [...(currentChallenge.alternateComponents?.goals || []), listValue],
+        };
+        break;
+      case "alternateFactors":
+        currentChallenge.alternateComponents = {
+          ...(currentChallenge.alternateComponents || { goals: [], outcomes: [] }),
+          factors: [...(currentChallenge.alternateComponents?.factors || []), listValue],
+        };
+        break;
+      case "alternateOutcomes":
+        currentChallenge.alternateComponents = {
+          ...(currentChallenge.alternateComponents || { goals: [], factors: [] }),
+          outcomes: [...(currentChallenge.alternateComponents?.outcomes || []), listValue],
+        };
+        break;
+      case "goalHints":
+        currentChallenge.hints = {
+          ...(currentChallenge.hints || { factorHints: [], outcomeHints: [] }),
+          goalHints: [...(currentChallenge.hints?.goalHints || []), listValue],
+        };
+        break;
+      case "factorHints":
+        currentChallenge.hints = {
+          ...(currentChallenge.hints || { goalHints: [], outcomeHints: [] }),
+          factorHints: [...(currentChallenge.hints?.factorHints || []), listValue],
+        };
+        break;
+      case "outcomeHints":
+        currentChallenge.hints = {
+          ...(currentChallenge.hints || { goalHints: [], factorHints: [] }),
+          outcomeHints: [...(currentChallenge.hints?.outcomeHints || []), listValue],
+        };
+        break;
+      default:
+        ambiguousBlocks.push(trimmedLine);
+    }
   }
 
-  if (scenarioLines.length === 0)
-    errors.push({
-      code: "G002",
-      message: `Challenge "${currentTitle}" is missing a Scenario.`,
-      field: "scenario",
-    });
-  if (!taskText)
-    errors.push({
-      code: "G003",
-      message: `Challenge "${currentTitle}" is missing a Task.`,
-      field: "task",
-    });
-  if (!goalText)
-    errors.push({
-      code: "G004",
-      message: `Challenge "${currentTitle}" is missing a Goal/Objective.`,
-      field: "goal",
-    });
-  if (factors.length === 0)
-    errors.push({
-      code: "G005",
-      message: `Challenge "${currentTitle}" has no Relevant Factors.`,
-      field: "relevantFactors",
-    });
-  if (outcomes.length === 0)
-    errors.push({
-      code: "G006",
-      message: `Challenge "${currentTitle}" has no Possible Outcomes.`,
-      field: "possibleOutcomes",
-    });
-  if (!targetName)
-    errors.push({
-      code: "G007",
-      message: `Challenge "${currentTitle}" is missing a Target Outcome.`,
-      field: "targetOutcome",
-    });
-  if (!targetExplanation)
-    errors.push({
-      code: "G008",
-      message: `Challenge "${currentTitle}" is missing a Target Outcome explanation.`,
-      field: "explanation",
-    });
-  if (
-    altGoals.length === 0 &&
-    altFactors.length === 0 &&
-    altOutcomes.length === 0
-  ) {
-    errors.push({
-      code: "G009",
-      message: `Challenge "${currentTitle}" has no Alternate Components.`,
-      field: "alternateComponents",
-    });
-  }
+  pushChallenge();
 
-  if (outcomes.length === 1) {
+  if (challenges.length === 0) {
     warnings.push({
-      code: "G011",
-      message: `Challenge "${currentTitle}" has only one Possible Outcome.`,
-      field: "possibleOutcomes",
+      code: "G000",
+      message: "Could not parse any distinct challenges from the provided text.",
     });
   }
 
-  const challengeModel: GauntletChallengeModel = {
-    id: `challenge-${Date.now()}`,
-    title: currentTitle,
-    challengeType: "standard",
-    scenario: scenarioLines.length > 0 ? scenarioLines : [text],
-    task: taskText || "Review scenario and determine optimal course of action.",
-    modelComponents: {
-      goal: goalText || "Ensure enterprise stability.",
-      relevantFactors:
-        factors.length > 0
-          ? factors
-          : ["Operational capacity", "Risk mitigation"],
-      possibleOutcomes:
-        outcomes.length > 0 ? outcomes : ["Proceed with standard workflow."],
-    },
-    targetOutcome: {
-      name: targetName || outcomes[0] || "Proceed with standard workflow.",
-      explanation: targetExplanation || "Default optimized response pathway.",
-    },
-    alternateComponents: {
-      goals: altGoals,
-      factors: altFactors,
-      outcomes: altOutcomes,
-    },
-    hints: {
-      goalHints,
-      factorHints,
-      outcomeHints,
-    },
-  };
+  for (const challenge of challenges) {
+    if (!challenge.scenario?.length)
+      errors.push({ code: "G002", message: `Challenge "${challenge.title}" is missing a Scenario.`, field: "scenario" });
+    if (!challenge.task)
+      errors.push({ code: "G003", message: `Challenge "${challenge.title}" is missing a Task.`, field: "task" });
+    if (!challenge.modelComponents.goal)
+      errors.push({ code: "G004", message: `Challenge "${challenge.title}" is missing a Goal/Objective.`, field: "goal" });
+  }
 
   const document: Partial<GauntletDocument> = {
     documentType: "gauntlet",
@@ -249,9 +277,9 @@ export function parseGauntlet(
     },
     sections: [
       {
-        sectionTitle: "Gauntlet Challenges",
+        sectionTitle: metadata.title || "Gauntlet Challenges",
         sectionType: "standard",
-        challenges: [challengeModel],
+        challenges: challenges,
       },
     ],
   };
@@ -263,140 +291,131 @@ function buildFallbackHitchhikersGuide(
   text: string,
   metadata: DocumentMetadata,
 ): Partial<HitchhikersGuide> {
-  const cleanedText = text
-    .replace(/\r/g, "")
-    .replace(/\s+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-
-  const lines = cleanedText
-    .split(/\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  const sections: Partial<
-    Record<"I" | "II" | "III" | "IV" | "V" | "VI" | "VII" | "VIII" | "IX", any>
-  > = {};
-  let currentSection: keyof typeof sections | null = null;
-  let currentSubsection: {
-    label: string;
-    content: string;
-    points: string[];
-  } | null = null;
-
-  const flushSubsection = () => {
-    if (!currentSection || !currentSubsection) return;
-    const section = sections[currentSection] || {
-      number: currentSection,
-      title: "",
-      subsections: [],
-    };
-    section.subsections.push(currentSubsection);
-    sections[currentSection] = section;
-    currentSubsection = null;
+  const challenges: HGChallenge[] = [];
+  let currentChallenge: HGChallenge = {
+    id: `hg-challenge-${challenges.length + 1}`,
+    title: "",
+    sections: {},
   };
+  let titleBuffer: string[] = [];
 
-  const ensureSubsection = (label: string, content = "") => {
-    if (!currentSection) return;
-    if (!currentSubsection) {
-      currentSubsection = { label, content, points: [] };
-      return;
-    }
-    if (currentSubsection.label !== label) {
-      flushSubsection();
-      currentSubsection = { label, content, points: [] };
-    }
-  };
-
-  for (let index = 0; index < lines.length; index += 1) {
-    let line = lines[index];
-    const sectionMatch = line.match(
-      /^(IX|VIII|VII|VI|V|IV|III|II|I)(?:\.|:|\s|-)?\s*(.*)$/i,
-    );
-    if (sectionMatch) {
-      flushSubsection();
-      const sectionNumber =
-        sectionMatch[1].toUpperCase() as keyof typeof sections;
-      currentSection = sectionNumber;
-      const title = sectionMatch[2].trim();
-      sections[sectionNumber] = {
-        number: sectionNumber,
-        title: title || "Section",
-        subsections: [],
-      };
-      continue;
-    }
-
-    if (!currentSection) continue;
-
-    const subsectionMatch = line.match(/^([A-Z])(?:[.):-])\s*(.*)$/i);
-    if (subsectionMatch) {
-      const label = subsectionMatch[1].toUpperCase();
-      const content = subsectionMatch[2].trim();
-      ensureSubsection(label, content);
-      continue;
-    }
-
-    const compactSectionMatch = line.match(/^(IX|VIII|VII|VI|V|IV|III|II|I)\s+(.+)$/i);
-    if (compactSectionMatch && !currentSubsection) {
-      flushSubsection();
-      const sectionNumber =
-        compactSectionMatch[1].toUpperCase() as keyof typeof sections;
-      currentSection = sectionNumber;
-      sections[sectionNumber] = {
-        number: sectionNumber,
-        title: compactSectionMatch[2].trim() || "Section",
-        subsections: [],
-      };
-      continue;
-    }
-
-    if (line.match(/^\d+[.)]\s+/) && currentSubsection) {
-      currentSubsection.points.push(line.replace(/^\d+[.)]\s*/, ""));
-      continue;
-    }
-
-    const cleanedLine = line.replace(/^[-*]\s*/, "").trim();
-    if (!cleanedLine) continue;
-
-    if (!currentSubsection) {
-      currentSubsection = { label: "A", content: cleanedLine, points: [] };
-      continue;
-    }
-
-    currentSubsection.content = currentSubsection.content
-      ? `${currentSubsection.content} ${cleanedLine}`
-      : cleanedLine;
+  const titleToNumeral = new Map<string, HGSectionNumber>();
+  for (const key in HG_SECTION_TITLES) {
+    const numeral = key as HGSectionNumber;
+    titleToNumeral.set(HG_SECTION_TITLES[numeral].toLowerCase(), numeral);
   }
 
-  flushSubsection();
+  let currentSection: HGSection | null = null;
+  let currentSubsection: HGSubsection | null = null;
 
-  flushSubsection();
+  const lines = text.replace(/\r/g, "").split("\n");
 
-  const challenges = [
-    {
-      id: "hg-challenge-1",
-      title: metadata.title || "Imported Hitchhiker's Guide",
-      sections: Object.fromEntries(
-        Object.entries(sections).map(([key, section]) => [
-          key,
-          {
-            number: key,
-            title: section.title || "Section",
-            subsections: (section.subsections || []).filter(Boolean),
-          },
-        ]),
-      ),
-    },
-  ];
+  const pushChallenge = () => {
+    if (Object.keys(currentChallenge.sections).length > 0) {
+      if (!currentChallenge.title && titleBuffer.length > 0) {
+        currentChallenge.title = titleBuffer.join(" ").trim();
+      } else if (!currentChallenge.title) {
+        currentChallenge.title = `Untitled Guide ${challenges.length + 1}`;
+      }
+      challenges.push(currentChallenge);
+    }
+    currentChallenge = {
+      id: `hg-challenge-${challenges.length + 1}`,
+      title: "",
+      sections: {},
+    };
+    titleBuffer = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const lower = trimmed.toLowerCase();
+
+    // Try to detect a section by its canonical title
+    let detectedNumeral: HGSectionNumber | null = null;
+    for (const [title, numeral] of titleToNumeral.entries()) {
+      if (lower.includes(title)) {
+        detectedNumeral = numeral;
+        break;
+      }
+    }
+
+    const romanMatch = trimmed.match(/^(IX|VIII|VII|VI|V|IV|III|II|I)(?:\.|:|\s|-)/);
+    if (romanMatch && !detectedNumeral) {
+      detectedNumeral = romanMatch[1] as HGSectionNumber;
+    }
+
+    if (detectedNumeral) {
+      if (
+        detectedNumeral === "I" &&
+        Object.keys(currentChallenge.sections).length > 0
+      ) {
+        pushChallenge();
+      }
+      currentSection = {
+        number: detectedNumeral,
+        title: HG_SECTION_TITLES[detectedNumeral],
+        subsections: [],
+      };
+      currentChallenge.sections[detectedNumeral] = currentSection;
+      currentSubsection = null;
+      continue;
+    }
+
+    if (!currentSection) {
+      titleBuffer.push(trimmed);
+      continue;
+    }
+
+    const alphaMatch = trimmed.match(/^([A-Z])(?:\.|:|-)\s*(.*)/);
+    if (alphaMatch) {
+      currentSubsection = {
+        label: alphaMatch[1],
+        content: alphaMatch[2].trim(),
+        points: [],
+      };
+      currentSection.subsections.push(currentSubsection);
+      continue;
+    }
+
+    const numericMatch = trimmed.match(/^\d+(?:\.|:|-)\s*(.*)/);
+    if (numericMatch && currentSubsection) {
+      currentSubsection.points.push(numericMatch[1].trim());
+      continue;
+    }
+    
+    if (currentSubsection) {
+      currentSubsection.content += ` ${trimmed}`;
+    } else {
+       // Content directly under a roman numeral, create an implicit subsection
+       currentSubsection = { label: 'A', content: trimmed, points: [] };
+       currentSection.subsections.push(currentSubsection);
+    }
+  }
+
+  pushChallenge();
+
+  if (challenges.length === 0) {
+    return {
+      documentType: "hitchhikers-guide",
+      metadata,
+      challenges: [
+        {
+          id: "hg-challenge-1",
+          title: metadata.title || "Imported Hitchhiker's Guide",
+          sections: {},
+        },
+      ],
+    };
+  }
 
   return {
     documentType: "hitchhikers-guide",
     metadata: {
+      ...metadata,
       title: metadata.title || "Hitchhiker’s Guide",
-      headerTitle: metadata.headerTitle || "iSolvRisk - Hitchhiker’s Guide",
-      date: metadata.date || "July 2026",
-      author: metadata.author || "iSolvRisk Inc.",
     },
     challenges,
   };

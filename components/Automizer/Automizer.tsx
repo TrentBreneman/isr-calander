@@ -82,9 +82,9 @@ async function runParse(
   }
 }
 
-async function generatePDF(doc: AutomizerDocument): Promise<Uint8Array> {
+async function generatePDF(doc: AutomizerDocument): Promise<void> {
   const { renderToPDF } = await import("@/lib/automizer/pdf-renderer");
-  return renderToPDF(doc);
+  await renderToPDF(doc);
 }
 
 async function generateDOCX(doc: AutomizerDocument): Promise<Blob> {
@@ -254,12 +254,9 @@ export default function Automizer({ onClose }: AutomizerProps) {
       const fmt = metadata.outputFormat;
 
       if (fmt === "pdf" || fmt === "both") {
-        const pdfBytes = await generatePDF(document);
-        const pdfBuffer = Uint8Array.from(pdfBytes);
-        const blob = new Blob([pdfBuffer], {
-          type: "application/pdf",
-        });
-        setPdfUrl(URL.createObjectURL(blob));
+        await generatePDF(document);
+        // PDF download is handled by the renderer, but we can signal completion.
+        setPdfUrl("#generated");
       }
 
       if (fmt === "docx" || fmt === "both") {

@@ -61,6 +61,7 @@ export interface HGSection {
 export interface HGChallenge {
   id: string;
   title: string;
+  subtitle?: string; // Added subtitle
   sections: Partial<Record<HGSectionNumber, HGSection>>;
 }
 

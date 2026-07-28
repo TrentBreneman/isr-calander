@@ -1,0 +1,83 @@
+/* Print-specific styles will go here */
+body {
+  font-family: 'Times New Roman', Times, serif;
+  line-height: 1.5;
+  color: #333;
+}
+
+h1, h2, h3 {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #111;
+}
+
+h1 {
+    font-size: 24pt;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 10px;
+    margin-bottom: 5px;
+}
+
+.metadata {
+    font-size: 10pt;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-size: 18pt;
+    margin-top: 40px;
+}
+
+h3 {
+    font-size: 14pt;
+    margin-top: 20px;
+}
+
+.challenge-separator {
+    border: 0;
+    border-top: 1px solid #ddd;
+    margin-top: 40px;
+}
+
+/* NEW STYLES FOR HITCHHIKER'S GUIDE */
+ol.roman {
+    list-style-type: upper-roman;
+    padding-left: 40px; /* Indent the whole list */
+    margin-top: 20px;
+}
+
+ol.roman > li {
+    padding-left: 10px; /* Space between number and text */
+}
+
+p.section-title {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14pt;
+    color: #111;
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+ol.subsections {
+    list-style-type: upper-alpha;
+    padding-left: 20px;
+    margin-top: 10px;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 12pt;
+    font-weight: normal;
+    color: #333;
+}
+
+ol.points {
+    list-style-type: decimal;
+    padding-left: 40px;
+}
+
+li {
+    margin-bottom: 10px;
+}
+
+p {
+    margin-top: 0;
+}
