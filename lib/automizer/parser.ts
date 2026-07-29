@@ -13,7 +13,7 @@ import {
   HGSection,
   HGSubsection,
 } from "./types";
-import { aiEnhanceHitchhikersGuide, isAIAvailable } from "./ai-parser";
+import { isAIAvailable } from "./ai-parser";
 
 export interface GauntletParseResult {
   document: Partial<GauntletDocument>;
@@ -335,16 +335,16 @@ function buildFallbackHitchhikersGuide(
 
     // Try to detect a section by its canonical title
     let detectedNumeral: HGSectionNumber | null = null;
-    for (const [title, numeral] of titleToNumeral.entries()) {
-      if (lower.includes(title)) {
-        detectedNumeral = numeral;
-        break;
-      }
-    }
-
     const romanMatch = trimmed.match(/^(IX|VIII|VII|VI|V|IV|III|II|I)(?:\.|:|\s|-)/);
-    if (romanMatch && !detectedNumeral) {
-      detectedNumeral = romanMatch[1] as HGSectionNumber;
+    if (romanMatch) {
+        detectedNumeral = romanMatch[1] as HGSectionNumber;
+    } else {
+        for (const [title, numeral] of titleToNumeral.entries()) {
+            if (lower.includes(title)) {
+                detectedNumeral = numeral;
+                break;
+            }
+        }
     }
 
     if (detectedNumeral) {
@@ -361,6 +361,15 @@ function buildFallbackHitchhikersGuide(
       };
       currentChallenge.sections[detectedNumeral] = currentSection;
       currentSubsection = null;
+      // Check for content on the same line as the Roman numeral
+      const titlePattern = new RegExp(`^(IX|VIII|VII|VI|V|IV|III|II|I)(?:\\.|:|\\s|-)`, "i");
+      const contentAfterTitle = trimmed.replace(titlePattern, "").trim();
+      if(contentAfterTitle) {
+          // This is intro content before any 'A.' subsections.
+          // Create an implicit subsection to hold it.
+          currentSubsection = { label: 'intro', content: [contentAfterTitle], points: [] };
+          currentSection.subsections.push(currentSubsection);
+      }
       continue;
     }
 
@@ -373,9 +382,13 @@ function buildFallbackHitchhikersGuide(
     if (alphaMatch) {
       currentSubsection = {
         label: alphaMatch[1],
-        content: alphaMatch[2].trim(),
+        content: [],
         points: [],
       };
+      const content = alphaMatch[2].trim();
+      if(content) {
+        currentSubsection.content.push(content);
+      }
       currentSection.subsections.push(currentSubsection);
       continue;
     }
@@ -386,12 +399,16 @@ function buildFallbackHitchhikersGuide(
       continue;
     }
     
-    if (currentSubsection) {
-      currentSubsection.content += ` ${trimmed}`;
-    } else {
-       // Content directly under a roman numeral, create an implicit subsection
-       currentSubsection = { label: 'A', content: trimmed, points: [] };
-       currentSection.subsections.push(currentSubsection);
+    // This is a continuation of the previous content (paragraph or intro)
+    if (trimmed) {
+        if (currentSubsection) {
+            // Add to the content of the current subsection
+            currentSubsection.content.push(trimmed);
+        } else {
+            // Content directly under a roman numeral, create an implicit subsection
+            currentSubsection = { label: 'intro', content: [trimmed], points: [] };
+            currentSection.subsections.push(currentSubsection);
+        }
     }
   }
 
@@ -441,24 +458,22 @@ export async function parseHitchhikersGuide(
       ambiguousBlocks,
     };
   }
-
-  if (isAIAvailable()) {
-    try {
-      const aiDoc = (await aiEnhanceHitchhikersGuide(
-        text,
-        metadata,
-      )) as HitchhikersGuide;
-      return { document: aiDoc, errors, warnings, ambiguousBlocks };
-    } catch {
-      warnings.push({
-        code: "HG_AI_FALLBACK",
-        message:
-          "AI parsing failed, falling back to local structure extraction.",
-      });
-    }
-  }
-
+  
+  // Per spec, use deterministic parsing first.
   const document = buildFallbackHitchhikersGuide(text, metadata);
+
+  // Future enhancement: Use AI to classify ambiguous blocks found by the deterministic parser.
+  if (isAIAvailable()) {
+    // For example:
+    // if (ambiguousBlocks.length > 0) {
+    //   const corrections = await aiCorrectAmbiguities(ambiguousBlocks);
+    //   applyCorrections(document, corrections);
+    // }
+    warnings.push({
+      code: 'HG_AI_NOTE',
+      message: 'AI processing is available but not yet implemented for ambiguity resolution.'
+    });
+  }
 
   return { document, errors, warnings, ambiguousBlocks };
 }

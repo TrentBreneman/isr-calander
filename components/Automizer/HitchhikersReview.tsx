@@ -15,7 +15,7 @@ import styles from "./Automizer.module.css";
 
 interface HitchhikersReviewProps {
   document: HitchhikersGuide;
-  onChange: (doc: HitchhikersGuide) => void; // eslint-disable-line no-unused-vars
+  onChange: (doc: HitchhikersGuide) => void; 
 }
 
 const ROMAN_ORDER: HGSectionNumber[] = [
@@ -36,19 +36,19 @@ function SubsectionEditor({
   onRemove,
 }: {
   sub: HGSubsection;
-  onChange: (updatedSub: HGSubsection) => void; // eslint-disable-line no-unused-vars
+  onChange: (updatedSub: HGSubsection) => void; 
   onRemove: () => void;
 }) {
   return (
     <div className={styles.hgSubsection}>
       <div className={styles.hgSubsectionHeader}>
         <span className={styles.hgAlphaLabel}>{sub.label}.</span>
-        <input
-          type="text"
+        <textarea
           className={styles.fieldInput}
-          value={sub.content}
-          onChange={(e) => onChange({ ...sub, content: e.target.value })}
+          value={Array.isArray(sub.content) ? sub.content.join('\\n') : sub.content}
+          onChange={(e) => onChange({ ...sub, content: e.target.value.split('\\n') })}
           placeholder="Subsection content..."
+          rows={Math.max(2, (Array.isArray(sub.content) ? sub.content.length : 1))}
         />
         <button
           className={styles.removeBtn}
@@ -105,7 +105,7 @@ function SectionEditor({
 }: {
   numeral: HGSectionNumber;
   section: HGSection | undefined;
-  onChange: (updatedSec: HGSection) => void; // eslint-disable-line no-unused-vars
+  onChange: (updatedSec: HGSection) => void; 
 }) {
   const [expanded, setExpanded] = useState(!!section);
   const current: HGSection = section ?? {
@@ -120,7 +120,7 @@ function SectionEditor({
       ...current,
       subsections: [
         ...current.subsections,
-        { label: nextLabel, content: "", points: [] },
+        { label: nextLabel, content: [], points: [] },
       ],
     });
   };
@@ -173,7 +173,7 @@ function ChallengeEditor({
   onRemove,
 }: {
   challenge: HGChallenge;
-  onChange: (updatedChal: HGChallenge) => void; // eslint-disable-line no-unused-vars
+  onChange: (updatedChal: HGChallenge) => void; 
   onRemove: () => void;
 }) {
   const [expanded, setExpanded] = useState(true);

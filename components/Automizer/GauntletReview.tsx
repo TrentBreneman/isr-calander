@@ -16,7 +16,7 @@ import styles from "./Automizer.module.css";
 
 interface GauntletReviewProps {
   document: GauntletDocument;
-  onChange: (doc: GauntletDocument) => void; // eslint-disable-line no-unused-vars
+  onChange: (doc: GauntletDocument) => void; 
 }
 
 interface ChallengeCardProps {
@@ -24,7 +24,7 @@ interface ChallengeCardProps {
   sectionIndex: number;
   challengeIndex: number;
   onChange: (
-    updated: import("@/lib/automizer/types").GauntletChallengeModel, // eslint-disable-line no-unused-vars
+    updated: import("@/lib/automizer/types").GauntletChallengeModel, 
   ) => void;
   onRemove: () => void;
 }
@@ -35,7 +35,7 @@ function EditableList({
   placeholder,
 }: {
   items: string[];
-  onChange: (updated: string[]) => void; // eslint-disable-line no-unused-vars
+  onChange: (updated: string[]) => void; 
   placeholder?: string;
 }) {
   // 'updated' is a parameter in a type definition.

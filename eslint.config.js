@@ -5,7 +5,7 @@ import globals from "globals";
 
 export default [
   {
-    ignores: [".next/**", "out/**", "node_modules/**", "deploy.cjs"],
+    ignores: [".next/**", "out/**", "node_modules/**", "deploy.cjs", "public/**"],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

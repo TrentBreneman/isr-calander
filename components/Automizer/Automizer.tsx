@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, DragEvent } from "react";
+import { saveAs } from "file-saver";
 import {
   X,
   FileText,
@@ -82,7 +83,7 @@ async function runParse(
   }
 }
 
-import { generatePdfOnClient } from "@/lib/automizer/client-pdf-generator";
+
 
 async function generateDOCX(doc: AutomizerDocument): Promise<Blob> {
   const { renderToDOCX } = await import("@/lib/automizer/docx-renderer");
@@ -247,20 +248,41 @@ export default function Automizer({ onClose }: AutomizerProps) {
     setPdfUrl(null);
     setDocxUrl(null);
 
+    const docTitle = document?.metadata?.title || "iSolvRisk-Document";
+    const safeFilename = docTitle.replace(/[^a-z0-9]/gi, "-").toLowerCase();
+
     try {
       const fmt = metadata.outputFormat;
 
       if (fmt === "pdf" || fmt === "both") {
-        generatePdfOnClient(document);
-        setPdfUrl("#generated"); // Signal completion for UI
+        if (document.documentType === 'hitchhikers-guide') {
+            const response = await fetch('/api/generate-pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(document),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`PDF generation failed: ${errorText}`);
+            }
+
+            const blob = await response.blob();
+            saveAs(blob, `${safeFilename}.pdf`);
+            setPdfUrl("#generated"); // Signal completion for UI
+
+        } else {
+            setGenerateError("PDF generation for Gauntlet documents has not yet been updated to the new engine.");
+        }
       }
 
       if (fmt === "docx" || fmt === "both") {
         const blob = await generateDOCX(document);
-        setDocxUrl(URL.createObjectURL(blob));
+        saveAs(blob, `${safeFilename}.docx`);
+        setDocxUrl(URL.createObjectURL(blob)); // For potential preview, though saveAs is direct
       }
 
-      setStep(6);
+      goNext();
     } catch (e: unknown) {
       const msg =
         e instanceof Error ? e.message : "Failed to generate document.";

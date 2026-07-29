@@ -48,7 +48,7 @@ export interface DocumentMetadata {
 
 export interface HGSubsection {
   label: string;
-  content: string;
+  content: string[]; // Each string is a paragraph
   points: string[];
 }
 
