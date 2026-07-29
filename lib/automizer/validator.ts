@@ -1,4 +1,4 @@
-import { AutomizerDocument, ParseError } from "./types";
+import { AutomizerDocument, ParseError, HGSectionNumber } from "./types";
 
 export interface ValidationResult {
   isValid: boolean;
@@ -116,6 +116,75 @@ export function validateDocument(
       errors.push({
         code: "HG002",
         message: "Hitchhiker's Guide contains no challenges.",
+      });
+    } else {
+      const expectedOrder: ReadonlyArray<HGSectionNumber> = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"];
+      
+      document.challenges.forEach((challenge) => {
+        const presentSections = Object.keys(challenge.sections) as HGSectionNumber[];
+        const presentSet = new Set(presentSections);
+
+        // Check for missing sections
+        for (const numeral of expectedOrder) {
+          if (!presentSet.has(numeral)) {
+            errors.push({
+              code: "HG003",
+              message: `Challenge "${challenge.title}" is missing section ${numeral}.`,
+              field: `sections[${numeral}]`,
+            });
+          }
+        }
+
+        // Check for section order
+        const sortedSections = presentSections.sort((a, b) => expectedOrder.indexOf(a) - expectedOrder.indexOf(b));
+        for(let i = 0; i < sortedSections.length; i++) {
+          if(sortedSections[i] !== expectedOrder[i]) {
+            warnings.push({
+              code: "HG004",
+              message: `Challenge "${challenge.title}" has sections out of order. Expected ${expectedOrder[i]}, found ${sortedSections[i]}.`,
+              field: 'sections',
+            });
+          }
+        }
+
+        // Section VI: must have a target outcome.
+        const sectionVI = challenge.sections["VI"];
+        if (sectionVI) {
+            const hasTargetOutcome = sectionVI.subsections.some(s => s.content.join(' ').toLowerCase().includes('target outcome'));
+            if(!hasTargetOutcome) {
+                warnings.push({
+                    code: 'HG005',
+                    message: `Section VI in "${challenge.title}" may be missing a target outcome.`,
+                    field: 'sections[VI]'
+                });
+            }
+        }
+        
+        // Section VII: must address possible outcomes.
+        const sectionVII = challenge.sections["VII"];
+        if(sectionVII) {
+             const hasPossibleOutcomes = sectionVII.subsections.some(s => s.content.join(' ').toLowerCase().includes('possible outcomes'));
+             if(!hasPossibleOutcomes) {
+                warnings.push({
+                    code: 'HG006',
+                    message: `Section VII in "${challenge.title}" may not address possible outcomes.`,
+                    field: 'sections[VII]'
+                });
+            }
+        }
+
+        // Section IX: must have facilitator notes.
+        const sectionIX = challenge.sections["IX"];
+        if(sectionIX) {
+            const hasFacilitatorNotes = sectionIX.subsections.some(s => s.content.join(' ').toLowerCase().includes('facilitator notes'));
+            if(!hasFacilitatorNotes) {
+                warnings.push({
+                    code: 'HG007',
+                    message: `Section IX in "${challenge.title}" may be missing facilitator notes.`,
+                    field: 'sections[IX]'
+                });
+            }
+        }
       });
     }
   }
