@@ -21,15 +21,7 @@ import type {
   HGSectionNumber,
 } from "./types";
 
-// Add the IIndentAttributes interface
-interface IIndentAttributes {
-  left?: number;
-  right?: number;
-  hanging?: number;
-  firstLine?: number;
-  start?: number;
-  end?: number;
-}
+
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -231,7 +223,7 @@ function buildGauntletChildren(doc: GauntletDocument): Paragraph[] {
                 size: 18,
               }),
             ],
-            indent: { left: convertInchesToTwip(0.25) } as IIndentAttributes,
+            indent: { left: convertInchesToTwip(0.25) },
             spacing: { before: 60, after: 30 },
           }),
         );
@@ -249,7 +241,7 @@ function buildGauntletChildren(doc: GauntletDocument): Paragraph[] {
                 size: 18,
               }),
             ],
-            indent: { left: convertInchesToTwip(0.25) } as IIndentAttributes,
+            indent: { left: convertInchesToTwip(0.25) },
             spacing: { before: 60, after: 30 },
           }),
         );
@@ -267,7 +259,7 @@ function buildGauntletChildren(doc: GauntletDocument): Paragraph[] {
                 size: 18,
               }),
             ],
-            indent: { left: convertInchesToTwip(0.25) } as IIndentAttributes,
+            indent: { left: convertInchesToTwip(0.25) },
             spacing: { before: 60, after: 30 },
           }),
         );
@@ -296,7 +288,7 @@ function buildGauntletChildren(doc: GauntletDocument): Paragraph[] {
               children: [
                 new TextRun({ text: "Goal Hints", bold: true, size: 18 }),
               ],
-              indent: { left: convertInchesToTwip(0.25) } as IIndentAttributes,
+              indent: { left: convertInchesToTwip(0.25) },
               spacing: { before: 60, after: 30 },
             }),
           );
@@ -310,7 +302,7 @@ function buildGauntletChildren(doc: GauntletDocument): Paragraph[] {
               children: [
                 new TextRun({ text: "Factor Hints", bold: true, size: 18 }),
               ],
-              indent: { left: convertInchesToTwip(0.25) } as IIndentAttributes,
+              indent: { left: convertInchesToTwip(0.25) },
               spacing: { before: 60, after: 30 },
             }),
           );
@@ -324,7 +316,7 @@ function buildGauntletChildren(doc: GauntletDocument): Paragraph[] {
               children: [
                 new TextRun({ text: "Outcome Hints", bold: true, size: 18 }),
               ],
-              indent: { left: convertInchesToTwip(0.25) } as IIndentAttributes,
+              indent: { left: convertInchesToTwip(0.25) },
               spacing: { before: 60, after: 30 },
             }),
           );
