@@ -83,8 +83,6 @@ async function runParse(
   }
 }
 
-
-
 async function generateDOCX(doc: AutomizerDocument): Promise<Blob> {
   const { renderToDOCX } = await import("@/lib/automizer/docx-renderer");
   return renderToDOCX(doc);
@@ -255,25 +253,20 @@ export default function Automizer({ onClose }: AutomizerProps) {
       const fmt = metadata.outputFormat;
 
       if (fmt === "pdf" || fmt === "both") {
-        if (document.documentType === 'hitchhikers-guide') {
-            const response = await fetch('/api/generate-pdf', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(document),
-            });
+        const response = await fetch("/api/generate-pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(document),
+        });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`PDF generation failed: ${errorText}`);
-            }
-
-            const blob = await response.blob();
-            saveAs(blob, `${safeFilename}.pdf`);
-            setPdfUrl("#generated"); // Signal completion for UI
-
-        } else {
-            setGenerateError("PDF generation for Gauntlet documents has not yet been updated to the new engine.");
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`PDF generation failed: ${errorText}`);
         }
+
+        const blob = await response.blob();
+        saveAs(blob, `${safeFilename}.pdf`);
+        setPdfUrl("#generated"); // Signal completion for UI
       }
 
       if (fmt === "docx" || fmt === "both") {

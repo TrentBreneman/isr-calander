@@ -3,11 +3,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import chromium from "@sparticuz/chromium";
 import { chromium as playwright } from "playwright-core";
 import { HitchhikersGuideTemplate } from "@/components/Automizer/HitchhikersGuideTemplate";
-import { HitchhikersGuide } from "@/lib/automizer/types";
+import { GauntletTemplate } from "@/components/Automizer/GauntletTemplate";
+import { AutomizerDocument } from "@/lib/automizer/types";
 import path from "path";
 import fs from "fs/promises";
 
-// Helper function to read the logo file
 async function getLogoBuffer() {
   const logoPath = path.join(
     process.cwd(),
@@ -25,7 +25,7 @@ export const config = {
       sizeLimit: "10mb",
     },
   },
-  maxDuration: 60, // seconds - PDF/Chromium cold starts can be slow, default 10s is too short
+  maxDuration: 60,
 };
 
 export default async function handler(
@@ -40,13 +40,22 @@ export default async function handler(
   let browser;
 
   try {
-    const document = req.body as HitchhikersGuide;
-    if (!document || document.documentType !== "hitchhikers-guide") {
+    const document = req.body as AutomizerDocument;
+
+    if (
+      !document ||
+      (document.documentType !== "hitchhikers-guide" &&
+        document.documentType !== "gauntlet")
+    ) {
       return res.status(400).send("Invalid document data");
     }
 
-    // With a .tsx file, we can use JSX syntax directly to create the element.
-    const element = <HitchhikersGuideTemplate document={document} />;
+    const element =
+      document.documentType === "hitchhikers-guide" ? (
+        <HitchhikersGuideTemplate document={document} />
+      ) : (
+        <GauntletTemplate document={document} />
+      );
     const html = renderToStaticMarkup(element);
 
     const logoBuffer = await getLogoBuffer();
@@ -62,9 +71,14 @@ export default async function handler(
 
     await page.setContent(html, { waitUntil: "networkidle" });
 
+    const defaultHeaderTitle =
+      document.documentType === "hitchhikers-guide"
+        ? "iSolvRisk - Hitchhiker's Guide"
+        : "iSolvRisk - Gauntlet Challenges";
+
     const headerTemplate = `
       <div style="font-family: Helvetica, sans-serif; font-size: 9px; color: #666; display: flex; justify-content: space-between; align-items: flex-start; margin: 0 1in; width: calc(100% - 2in);">
-        <span>${document.metadata.headerTitle || "iSolvRisk - Hitchhiker’s Guide"}</span>
+        <span>${document.metadata.headerTitle || defaultHeaderTitle}</span>
         <img src="data:image/png;base64,${logoBase64}" style="width: 52px; height: auto;" />
       </div>`;
 
@@ -90,10 +104,15 @@ export default async function handler(
     await browser.close();
     browser = undefined;
 
+    const defaultFilename =
+      document.documentType === "hitchhikers-guide"
+        ? "Hitchhikers-Guide"
+        : "Gauntlet-Challenges";
+
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${document.metadata.title || "Hitchhikers-Guide"}.pdf"`,
+      `attachment; filename="${document.metadata.title || defaultFilename}.pdf"`,
     );
     res.status(200).send(pdfBuffer);
   } catch (error) {
