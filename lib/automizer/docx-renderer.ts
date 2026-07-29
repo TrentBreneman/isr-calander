@@ -23,12 +23,12 @@ import type {
 
 // Add the IIndentAttributes interface
 interface IIndentAttributes {
-  left?: number | string;
-  right?: number | string;
-  hanging?: number | string;
-  firstLine?: number | string;
-  start?: number | string;
-  end?: number | string;
+  left?: number;
+  right?: number;
+  hanging?: number;
+  firstLine?: number;
+  start?: number;
+  end?: number;
 }
 
 
