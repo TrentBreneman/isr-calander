@@ -342,6 +342,11 @@ function buildFallbackHitchhikersGuide(
     titleBuffer = [];
   };
 
+  const arabicToRomanMap: { [key: string]: HGSectionNumber } = {
+      "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
+      "6": "VI", "7": "VII", "8": "VIII", "9": "IX"
+  };
+
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
@@ -351,8 +356,12 @@ function buildFallbackHitchhikersGuide(
     // Try to detect a section by its canonical title
     let detectedNumeral: HGSectionNumber | null = null;
     const romanMatch = trimmed.match(/^(IX|VIII|VII|VI|V|IV|III|II|I)(?:\.|:|\s|-)/);
+    const arabicMatch = trimmed.match(/^([1-9])(?:\.|:|\s|-)/);
+    
     if (romanMatch) {
         detectedNumeral = romanMatch[1] as HGSectionNumber;
+    } else if (arabicMatch) {
+        detectedNumeral = arabicToRomanMap[arabicMatch[1]];
     } else {
         for (const [title, numeral] of titleToNumeral.entries()) {
             if (lower.includes(title)) {
@@ -377,7 +386,7 @@ function buildFallbackHitchhikersGuide(
       currentChallenge.sections[detectedNumeral] = currentSection;
       currentSubsection = null;
       // Check for content on the same line as the Roman numeral
-      const titlePattern = new RegExp(`^(IX|VIII|VII|VI|V|IV|III|II|I)(?:\\.|:|\\s|-)`, "i");
+      const titlePattern = new RegExp(`^(IX|VIII|VII|VI|V|IV|III|II|I|[1-9])(?:\\.|:|\\s|-)`, "i");
       const contentAfterTitle = trimmed.replace(titlePattern, "").trim();
       if(contentAfterTitle) {
           // This is intro content before any 'A.' subsections.
