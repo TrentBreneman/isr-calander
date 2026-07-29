@@ -126,13 +126,28 @@ export function parseGauntlet(
     let trimmedLine = line.trim();
     if (!trimmedLine) continue;
 
-    const lowerLine = trimmedLine.toLowerCase().replace(/[:*]/g, "").trim();
-    const canonical = aliasMap.get(lowerLine.split(/\s+/).join(" "));
-    
+    const normalizeHeading = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/[:*-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    let canonical = aliasMap.get(normalizeHeading(trimmedLine));
     let content = "";
-    const match = trimmedLine.match(/^([a-zA-Z\s/]+)[:\s-]+(.*)/);
-    if(match && aliasMap.has(match[1].toLowerCase().trim())) {
-      content = match[2].trim();
+
+    if (!canonical) {
+      // Handles headings written with content on the same line,
+      // e.g. "SCENARIO: The company discovered..." or "Scenario - ...".
+      const inlineMatch = trimmedLine.match(/^([a-zA-Z\s/]+)[:\-]\s*(.*)/);
+      if (inlineMatch) {
+        const headingCandidate = normalizeHeading(inlineMatch[1]);
+        const mapped = aliasMap.get(headingCandidate);
+        if (mapped) {
+          canonical = mapped;
+          content = inlineMatch[2].trim();
+        }
+      }
     }
 
 
