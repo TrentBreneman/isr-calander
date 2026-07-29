@@ -14,7 +14,7 @@ async function getLogoBuffer() {
     "public",
     "assets",
     "branding",
-    "isolvrisk-logo.png",
+    "isolvrisk-logo.svg",
   );
   return fs.readFile(logoPath);
 }
@@ -79,7 +79,7 @@ export default async function handler(
     const headerTemplate = `
       <div style="font-family: Helvetica, sans-serif; font-size: 9px; color: #666; display: flex; justify-content: space-between; align-items: flex-start; margin: 0 1in; width: calc(100% - 2in);">
         <span>${document.metadata.headerTitle || defaultHeaderTitle}</span>
-        <img src="data:image/png;base64,${logoBase64}" style="width: 52px; height: auto;" />
+        <img src="data:image/svg+xml;base64,${logoBase64}" style="width: 52px; height: auto;" />
       </div>`;
 
     const footerTemplate = `
