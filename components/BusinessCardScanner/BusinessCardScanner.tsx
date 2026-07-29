@@ -72,7 +72,7 @@ export default function BusinessCardScanner({ onClose }: BusinessCardScannerProp
     let email = "";
     let phone = "";
     let name = "";
-    let addressLines: string[] = [];
+    const addressLines: string[] = [];
 
     lines.forEach((line, index) => {
       // Find Email
