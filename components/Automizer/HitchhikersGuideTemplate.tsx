@@ -112,20 +112,34 @@ export const HitchhikersGuideTemplate: React.FC<TemplateProps> = ({
                 margin-bottom: 16px;
                 page-break-inside: auto;
             }
-            .romanSection h3 {
+            .romanHeading {
+                display: flex;
+                margin-left: 24px;
+                margin-bottom: 6px;
+                page-break-after: avoid;
+            }
+            .romanLabel {
+                width: 34px;
+                flex-shrink: 0;
+                text-align: right;
+                padding-right: 8px;
+                box-sizing: border-box;
                 font-size: 11.5pt;
                 font-weight: 600;
-                margin: 0 0 6px 0;
-                page-break-after: avoid;
+            }
+            .romanTitle {
+                flex-grow: 1;
+                font-size: 11.5pt;
+                font-weight: 600;
             }
             .alphaSection {
                 display: flex;
-                margin-left: 20px;
+                margin-left: 68px;
                 margin-bottom: 6px;
                 page-break-inside: avoid;
             }
             .alphaLabel {
-                width: 20px;
+                width: 22px;
                 flex-shrink: 0;
             }
             .alphaContent {
@@ -161,9 +175,10 @@ export const HitchhikersGuideTemplate: React.FC<TemplateProps> = ({
 
               {Object.values(challenge.sections).map((section) => (
                 <div key={section.number} className="romanSection">
-                  <h3>
-                    {section.number}. {section.title}
-                  </h3>
+                  <div className="romanHeading">
+                    <span className="romanLabel">{section.number}.</span>
+                    <span className="romanTitle">{section.title}</span>
+                  </div>
                   {section.subsections.map((subsection, subIndex) => (
                     <div key={subIndex} className="alphaSection">
                       {subsection.label !== "intro" && (
