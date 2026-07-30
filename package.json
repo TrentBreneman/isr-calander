@@ -12,6 +12,7 @@
     "deploy": "next build && node --env-file=.env.local deploy.cjs"
   },
   "dependencies": {
+    "@google/genai": "^2.15.0",
     "@google/generative-ai": "^0.15.0",
     "@sparticuz/chromium": "^149.0.0",
     "@supabase/auth-ui-react": "^0.4.7",

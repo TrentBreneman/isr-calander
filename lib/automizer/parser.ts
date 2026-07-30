@@ -139,7 +139,7 @@ export function parseGauntlet(
     if (!canonical) {
       // Handles headings written with content on the same line,
       // e.g. "SCENARIO: The company discovered..." or "Scenario - ...".
-      const inlineMatch = trimmedLine.match(/^([a-zA-Z\s/]+)[:\-]\s*(.*)/);
+      const inlineMatch = trimmedLine.match(/^([a-zA-Z\s/]+)[:-]\s*(.*)/);
       if (inlineMatch) {
         const headingCandidate = normalizeHeading(inlineMatch[1]);
         const mapped = aliasMap.get(headingCandidate);

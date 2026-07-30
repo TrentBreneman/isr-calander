@@ -3,9 +3,7 @@ import { DocumentMetadata, AutomizerDocument } from "./types";
 import { callGemini } from "./ai-client";
 
 export function isAIAvailable(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY,
-  );
+  return Boolean(process.env.GEMINI_API_KEY);
 }
 
 export async function aiEnhanceGauntlet(
