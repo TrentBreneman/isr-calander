@@ -21,9 +21,6 @@ import type {
   HGSectionNumber,
 } from "./types";
 
-
-
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Style helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -64,10 +61,6 @@ function metaParagraph(date: string, author: string): Paragraph {
     ],
     spacing: { before: 40, after: 80 },
   });
-}
-
-function pageBreak(): Paragraph {
-  return new Paragraph({ pageBreakBefore: true, text: "" });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -370,7 +363,9 @@ function buildHGChildren(doc: HitchhikersGuide): Paragraph[] {
 
   for (let ci = 0; ci < doc.challenges.length; ci++) {
     const challenge = doc.challenges[ci];
-    if (ci > 0) children.push(pageBreak());
+    // Challenges flow one after another with no forced page break, matching
+    // the approved iSolvRisk reference document (a new challenge simply
+    // continues wherever the previous one's Section IX ends).
 
     children.push(
       new Paragraph({
@@ -394,14 +389,28 @@ function buildHGChildren(doc: HitchhikersGuide): Paragraph[] {
       );
 
       for (const sub of section.subsections) {
-        children.push(
-          new Paragraph({
-            text: `${sub.label}. ${sub.content}`,
-            heading: sub.points.length > 0 ? "Heading3" : undefined,
-            indent: { left: convertInchesToTwip(0.25) },
-            spacing: { before: 80, after: sub.points.length > 0 ? 40 : 80 },
-          }),
-        );
+        const paragraphs = sub.content.length > 0 ? sub.content : [""];
+
+        paragraphs.forEach((para, contentIndex) => {
+          children.push(
+            new Paragraph({
+              text: contentIndex === 0 ? `${sub.label}. ${para}` : para,
+              heading:
+                contentIndex === 0 && sub.points.length > 0
+                  ? "Heading3"
+                  : undefined,
+              indent: { left: convertInchesToTwip(0.25) },
+              spacing: {
+                before: contentIndex === 0 ? 80 : 40,
+                after:
+                  contentIndex === paragraphs.length - 1 &&
+                  sub.points.length > 0
+                    ? 40
+                    : 80,
+              },
+            }),
+          );
+        });
 
         for (let pi = 0; pi < sub.points.length; pi++) {
           children.push(bulletItem(`${pi + 1}. ${sub.points[pi]}`, 1));
