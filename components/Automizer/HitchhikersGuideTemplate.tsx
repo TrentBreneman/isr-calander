@@ -196,9 +196,34 @@ export const HitchhikersGuideTemplate: React.FC<TemplateProps> = ({
                         ))}
                         {subsection.points.length > 0 && (
                           <ol className="numericList">
-                            {subsection.points.map((point, ptIndex) => (
-                              <li key={ptIndex}>{point}</li>
-                            ))}
+                            {subsection.points.map((point, ptIndex) => {
+                              if (typeof point === "string") {
+                                return <li key={ptIndex}>{point}</li>;
+                              }
+                              return (
+                                <li key={ptIndex}>
+                                  {point.text}
+                                  {point.subPoints &&
+                                    point.subPoints.length > 0 && (
+                                      <ol
+                                        className="numericList"
+                                        style={{
+                                          marginTop: "2px",
+                                          marginBottom: "2px",
+                                        }}
+                                      >
+                                        {point.subPoints.map(
+                                          (subPoint, subPtIndex) => (
+                                            <li key={subPtIndex}>
+                                              {subPoint}
+                                            </li>
+                                          ),
+                                        )}
+                                      </ol>
+                                    )}
+                                </li>
+                              );
+                            })}
                           </ol>
                         )}
                       </div>

@@ -376,6 +376,7 @@ function buildFallbackHitchhikersGuide(
 
   let currentSection: HGSection | null = null;
   let currentSubsection: HGSubsection | null = null;
+  let lastNumericIndentation = -1;
 
   const lines = text.replace(/\r/g, "").split("\n");
 
@@ -476,6 +477,8 @@ function buildFallbackHitchhikersGuide(
       continue;
     }
 
+    const indentation = line.search(/\S|$/);
+
     const alphaMatch = trimmed.match(/^([A-Z])(?:\.|:|-)\s*(.*)/);
     if (alphaMatch) {
       currentSubsection = {
@@ -488,14 +491,37 @@ function buildFallbackHitchhikersGuide(
         currentSubsection.content.push(content);
       }
       currentSection.subsections.push(currentSubsection);
+      lastNumericIndentation = -1;
       continue;
     }
 
-    const numericMatch = trimmed.match(/^\d+(?:\.|:|-)\s*(.*)/);
+    const numericMatch = trimmed.match(/^(\d+)(?:\.|:|-)\s*(.*)/);
     if (numericMatch && currentSubsection) {
-      currentSubsection.points.push(numericMatch[1].trim());
+      const pointText = numericMatch[2].trim();
+
+      if (
+        lastNumericIndentation !== -1 &&
+        indentation > lastNumericIndentation &&
+        currentSubsection.points.length > 0
+      ) {
+        const lastPoint =
+          currentSubsection.points[currentSubsection.points.length - 1];
+        if (typeof lastPoint === "string") {
+          currentSubsection.points[currentSubsection.points.length - 1] = {
+            text: lastPoint,
+            subPoints: [pointText],
+          };
+        } else {
+          lastPoint.subPoints.push(pointText);
+        }
+      } else {
+        currentSubsection.points.push(pointText);
+        lastNumericIndentation = indentation;
+      }
       continue;
     }
+
+    lastNumericIndentation = -1;
 
     // This is a continuation of the previous content (paragraph or intro)
     if (trimmed) {

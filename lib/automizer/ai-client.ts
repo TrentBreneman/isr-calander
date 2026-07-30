@@ -5,7 +5,6 @@ export async function callGemini(
   userPrompt: string,
 ): Promise<string | null> {
   const apiKey = process.env.GEMINI_API_KEY;
-  console.log("GEMINI_API_KEY (first 5 chars):", apiKey ? apiKey.substring(0, 5) : "Not set");
   if (!apiKey) {
     return null;
   }

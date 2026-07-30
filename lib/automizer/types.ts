@@ -46,10 +46,12 @@ export interface DocumentMetadata {
   logoAssetId?: string;
 }
 
+export type HGPoint = string | { text: string; subPoints: string[] };
+
 export interface HGSubsection {
   label: string;
   content: string[]; // Each string is a paragraph
-  points: string[];
+  points: HGPoint[];
 }
 
 export interface HGSection {

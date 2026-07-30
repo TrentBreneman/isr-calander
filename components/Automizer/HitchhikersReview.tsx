@@ -36,7 +36,7 @@ function SubsectionEditor({
   onRemove,
 }: {
   sub: HGSubsection;
-  onChange: (updatedSub: HGSubsection) => void; 
+  onChange: (updatedSub: HGSubsection) => void;
   onRemove: () => void;
 }) {
   return (
@@ -45,10 +45,17 @@ function SubsectionEditor({
         <span className={styles.hgAlphaLabel}>{sub.label}.</span>
         <textarea
           className={styles.fieldInput}
-          value={Array.isArray(sub.content) ? sub.content.join('\\n') : sub.content}
-          onChange={(e) => onChange({ ...sub, content: e.target.value.split('\\n') })}
+          value={
+            Array.isArray(sub.content) ? sub.content.join("\n") : sub.content
+          }
+          onChange={(e) =>
+            onChange({ ...sub, content: e.target.value.split("\n") })
+          }
           placeholder="Subsection content..."
-          rows={Math.max(2, (Array.isArray(sub.content) ? sub.content.length : 1))}
+          rows={Math.max(
+            2,
+            Array.isArray(sub.content) ? sub.content.length : 1,
+          )}
         />
         <button
           className={styles.removeBtn}
@@ -59,34 +66,98 @@ function SubsectionEditor({
         </button>
       </div>
       <div className={styles.hgPoints}>
-        {sub.points.map((pt, i) => (
-          <div key={i} className={styles.hgPointRow}>
-            <span className={styles.hgPointNum}>{i + 1}.</span>
-            <input
-              type="text"
-              className={styles.fieldInput}
-              value={pt}
-              onChange={(e) => {
-                const pts = [...sub.points];
-                pts[i] = e.target.value;
-                onChange({ ...sub, points: pts });
-              }}
-              placeholder="Supporting point..."
-            />
-            <button
-              className={styles.removeBtn}
-              onClick={() =>
-                onChange({
-                  ...sub,
-                  points: sub.points.filter((_, idx) => idx !== i),
-                })
-              }
-              aria-label="Remove point"
-            >
-              <Trash2 size={11} />
-            </button>
-          </div>
-        ))}
+        {sub.points.map((pt, i) => {
+          const isObj = typeof pt !== "string";
+          const pointText = isObj ? pt.text : pt;
+          const subPoints = isObj ? pt.subPoints : [];
+
+          return (
+            <div key={i} className={styles.hgPointEditor}>
+              <div className={styles.hgPointRow}>
+                <span className={styles.hgPointNum}>{i + 1}.</span>
+                <input
+                  type="text"
+                  className={styles.fieldInput}
+                  value={pointText}
+                  onChange={(e) => {
+                    const newPoints = [...sub.points];
+                    if (isObj) {
+                      newPoints[i] = { ...pt, text: e.target.value };
+                    } else {
+                      newPoints[i] = e.target.value;
+                    }
+                    onChange({ ...sub, points: newPoints });
+                  }}
+                  placeholder="Supporting point..."
+                />
+                <button
+                  className={styles.removeBtn}
+                  onClick={() =>
+                    onChange({
+                      ...sub,
+                      points: sub.points.filter((_, idx) => idx !== i),
+                    })
+                  }
+                  aria-label="Remove point"
+                >
+                  <Trash2 size={11} />
+                </button>
+              </div>
+
+              {isObj && subPoints.length > 0 && (
+                <div className={styles.hgSubPoints}>
+                  {subPoints.map((subPt, subI) => (
+                    <div key={subI} className={styles.hgPointRow}>
+                      <span className={styles.hgPointNum}>
+                        {/* We can use letters for sub-points like a, b, c */}
+                        {String.fromCharCode(97 + subI)}.
+                      </span>
+                      <input
+                        type="text"
+                        className={styles.fieldInput}
+                        value={subPt}
+                        onChange={(e) => {
+                          const newPoints = [...sub.points];
+                          const parentPoint = newPoints[i];
+                          if (typeof parentPoint !== "string") {
+                            const newSubPoints = [...parentPoint.subPoints];
+                            newSubPoints[subI] = e.target.value;
+                            newPoints[i] = {
+                              ...parentPoint,
+                              subPoints: newSubPoints,
+                            };
+                            onChange({ ...sub, points: newPoints });
+                          }
+                        }}
+                        placeholder="Nested point..."
+                      />
+                      <button
+                        className={styles.removeBtn}
+                        onClick={() => {
+                          const newPoints = [...sub.points];
+                          const parentPoint = newPoints[i];
+                          if (typeof parentPoint !== "string") {
+                            const newSubPoints = parentPoint.subPoints.filter(
+                              (_, idx) => idx !== subI,
+                            );
+                            newPoints[i] = {
+                              ...parentPoint,
+                              subPoints: newSubPoints,
+                            };
+                            onChange({ ...sub, points: newPoints });
+                          }
+                        }}
+                        aria-label="Remove nested point"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
         <button
           className={styles.addItemBtn}
           onClick={() => onChange({ ...sub, points: [...sub.points, ""] })}
