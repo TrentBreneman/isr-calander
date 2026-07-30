@@ -13,7 +13,7 @@ import {
   HGSection,
   HGSubsection,
 } from "./types";
-import { isAIAvailable } from "./ai-parser";
+import { isAIAvailable, aiEnhanceHitchhikersGuide } from "./ai-parser";
 
 export interface GauntletParseResult {
   document: Partial<GauntletDocument>;
@@ -110,7 +110,11 @@ export function parseGauntlet(
         challengeType: "standard",
         scenario: [],
         task: "",
-        modelComponents: { goal: "", relevantFactors: [], possibleOutcomes: [] },
+        modelComponents: {
+          goal: "",
+          relevantFactors: [],
+          possibleOutcomes: [],
+        },
         targetOutcome: { name: "", explanation: "" },
         alternateComponents: { goals: [], factors: [], outcomes: [] },
         hints: { goalHints: [], factorHints: [], outcomeHints: [] },
@@ -127,11 +131,7 @@ export function parseGauntlet(
     if (!trimmedLine) continue;
 
     const normalizeHeading = (s: string) =>
-      s
-        .toLowerCase()
-        .replace(/[:*-]/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+      s.toLowerCase().replace(/[:*-]/g, " ").replace(/\s+/g, " ").trim();
 
     let canonical = aliasMap.get(normalizeHeading(trimmedLine));
     let content = "";
@@ -149,7 +149,6 @@ export function parseGauntlet(
         }
       }
     }
-
 
     if (canonical) {
       if (canonical === "scenario" && hasContent(currentChallenge)) {
@@ -180,20 +179,31 @@ export function parseGauntlet(
           (currentChallenge.title || "") + " " + trimmedLine;
         break;
       case "scenario":
-        currentChallenge.scenario = [...(currentChallenge.scenario || []), trimmedLine];
+        currentChallenge.scenario = [
+          ...(currentChallenge.scenario || []),
+          trimmedLine,
+        ];
         break;
       case "task":
-        currentChallenge.task = (currentChallenge.task || "") + " " + trimmedLine;
+        currentChallenge.task =
+          (currentChallenge.task || "") + " " + trimmedLine;
         break;
       case "goal":
         currentChallenge.modelComponents = {
-          ...(currentChallenge.modelComponents || { relevantFactors: [], possibleOutcomes: [] }),
-          goal: (currentChallenge.modelComponents?.goal || "") + " " + trimmedLine,
+          ...(currentChallenge.modelComponents || {
+            relevantFactors: [],
+            possibleOutcomes: [],
+          }),
+          goal:
+            (currentChallenge.modelComponents?.goal || "") + " " + trimmedLine,
         };
         break;
       case "relevantFactors":
         currentChallenge.modelComponents = {
-          ...(currentChallenge.modelComponents || { goal: "", possibleOutcomes: [] }),
+          ...(currentChallenge.modelComponents || {
+            goal: "",
+            possibleOutcomes: [],
+          }),
           relevantFactors: [
             ...(currentChallenge.modelComponents?.relevantFactors || []),
             listValue,
@@ -202,7 +212,10 @@ export function parseGauntlet(
         break;
       case "possibleOutcomes":
         currentChallenge.modelComponents = {
-          ...(currentChallenge.modelComponents || { goal: "", relevantFactors: [] }),
+          ...(currentChallenge.modelComponents || {
+            goal: "",
+            relevantFactors: [],
+          }),
           possibleOutcomes: [
             ...(currentChallenge.modelComponents?.possibleOutcomes || []),
             listValue,
@@ -212,31 +225,53 @@ export function parseGauntlet(
       case "targetOutcome":
         currentChallenge.targetOutcome = {
           ...(currentChallenge.targetOutcome || { explanation: "" }),
-          name: (currentChallenge.targetOutcome?.name || "") + " " + trimmedLine,
+          name:
+            (currentChallenge.targetOutcome?.name || "") + " " + trimmedLine,
         };
         break;
       case "explanation":
         currentChallenge.targetOutcome = {
           ...(currentChallenge.targetOutcome || { name: "" }),
-          explanation: (currentChallenge.targetOutcome?.explanation || "") + " " + trimmedLine,
+          explanation:
+            (currentChallenge.targetOutcome?.explanation || "") +
+            " " +
+            trimmedLine,
         };
         break;
       case "alternateGoals":
         currentChallenge.alternateComponents = {
-          ...(currentChallenge.alternateComponents || { factors: [], outcomes: [] }),
-          goals: [...(currentChallenge.alternateComponents?.goals || []), listValue],
+          ...(currentChallenge.alternateComponents || {
+            factors: [],
+            outcomes: [],
+          }),
+          goals: [
+            ...(currentChallenge.alternateComponents?.goals || []),
+            listValue,
+          ],
         };
         break;
       case "alternateFactors":
         currentChallenge.alternateComponents = {
-          ...(currentChallenge.alternateComponents || { goals: [], outcomes: [] }),
-          factors: [...(currentChallenge.alternateComponents?.factors || []), listValue],
+          ...(currentChallenge.alternateComponents || {
+            goals: [],
+            outcomes: [],
+          }),
+          factors: [
+            ...(currentChallenge.alternateComponents?.factors || []),
+            listValue,
+          ],
         };
         break;
       case "alternateOutcomes":
         currentChallenge.alternateComponents = {
-          ...(currentChallenge.alternateComponents || { goals: [], factors: [] }),
-          outcomes: [...(currentChallenge.alternateComponents?.outcomes || []), listValue],
+          ...(currentChallenge.alternateComponents || {
+            goals: [],
+            factors: [],
+          }),
+          outcomes: [
+            ...(currentChallenge.alternateComponents?.outcomes || []),
+            listValue,
+          ],
         };
         break;
       case "goalHints":
@@ -248,13 +283,19 @@ export function parseGauntlet(
       case "factorHints":
         currentChallenge.hints = {
           ...(currentChallenge.hints || { goalHints: [], outcomeHints: [] }),
-          factorHints: [...(currentChallenge.hints?.factorHints || []), listValue],
+          factorHints: [
+            ...(currentChallenge.hints?.factorHints || []),
+            listValue,
+          ],
         };
         break;
       case "outcomeHints":
         currentChallenge.hints = {
           ...(currentChallenge.hints || { goalHints: [], factorHints: [] }),
-          outcomeHints: [...(currentChallenge.hints?.outcomeHints || []), listValue],
+          outcomeHints: [
+            ...(currentChallenge.hints?.outcomeHints || []),
+            listValue,
+          ],
         };
         break;
       default:
@@ -267,17 +308,30 @@ export function parseGauntlet(
   if (challenges.length === 0) {
     warnings.push({
       code: "G000",
-      message: "Could not parse any distinct challenges from the provided text.",
+      message:
+        "Could not parse any distinct challenges from the provided text.",
     });
   }
 
   for (const challenge of challenges) {
     if (!challenge.scenario?.length)
-      errors.push({ code: "G002", message: `Challenge "${challenge.title}" is missing a Scenario.`, field: "scenario" });
+      errors.push({
+        code: "G002",
+        message: `Challenge "${challenge.title}" is missing a Scenario.`,
+        field: "scenario",
+      });
     if (!challenge.task)
-      errors.push({ code: "G003", message: `Challenge "${challenge.title}" is missing a Task.`, field: "task" });
+      errors.push({
+        code: "G003",
+        message: `Challenge "${challenge.title}" is missing a Task.`,
+        field: "task",
+      });
     if (!challenge.modelComponents.goal)
-      errors.push({ code: "G004", message: `Challenge "${challenge.title}" is missing a Goal/Objective.`, field: "goal" });
+      errors.push({
+        code: "G004",
+        message: `Challenge "${challenge.title}" is missing a Goal/Objective.`,
+        field: "goal",
+      });
   }
 
   const document: Partial<GauntletDocument> = {
@@ -343,8 +397,15 @@ function buildFallbackHitchhikersGuide(
   };
 
   const arabicToRomanMap: { [key: string]: HGSectionNumber } = {
-      "1": "I", "2": "II", "3": "III", "4": "IV", "5": "V",
-      "6": "VI", "7": "VII", "8": "VIII", "9": "IX"
+    "1": "I",
+    "2": "II",
+    "3": "III",
+    "4": "IV",
+    "5": "V",
+    "6": "VI",
+    "7": "VII",
+    "8": "VIII",
+    "9": "IX",
   };
 
   for (const line of lines) {
@@ -355,20 +416,22 @@ function buildFallbackHitchhikersGuide(
 
     // Try to detect a section by its canonical title
     let detectedNumeral: HGSectionNumber | null = null;
-    const romanMatch = trimmed.match(/^(IX|VIII|VII|VI|V|IV|III|II|I)(?:\.|:|\s|-)/);
+    const romanMatch = trimmed.match(
+      /^(IX|VIII|VII|VI|V|IV|III|II|I)(?:\.|:|\s|-)/,
+    );
     const arabicMatch = trimmed.match(/^([1-9])(?:\.|:|\s|-)/);
-    
+
     if (romanMatch) {
-        detectedNumeral = romanMatch[1] as HGSectionNumber;
+      detectedNumeral = romanMatch[1] as HGSectionNumber;
     } else if (arabicMatch) {
-        detectedNumeral = arabicToRomanMap[arabicMatch[1]];
+      detectedNumeral = arabicToRomanMap[arabicMatch[1]];
     } else {
-        for (const [title, numeral] of titleToNumeral.entries()) {
-            if (lower.includes(title)) {
-                detectedNumeral = numeral;
-                break;
-            }
+      for (const [title, numeral] of titleToNumeral.entries()) {
+        if (lower.includes(title)) {
+          detectedNumeral = numeral;
+          break;
         }
+      }
     }
 
     if (detectedNumeral) {
@@ -386,13 +449,24 @@ function buildFallbackHitchhikersGuide(
       currentChallenge.sections[detectedNumeral] = currentSection;
       currentSubsection = null;
       // Check for content on the same line as the Roman numeral
-      const titlePattern = new RegExp(`^(IX|VIII|VII|VI|V|IV|III|II|I|[1-9])(?:\\.|:|\\s|-)`, "i");
+      const titlePattern = new RegExp(
+        `^(IX|VIII|VII|VI|V|IV|III|II|I|[1-9])(?:\\.|:|\\s|-)`,
+        "i",
+      );
       const contentAfterTitle = trimmed.replace(titlePattern, "").trim();
-      if(contentAfterTitle) {
-          // This is intro content before any 'A.' subsections.
-          // Create an implicit subsection to hold it.
-          currentSubsection = { label: 'intro', content: [contentAfterTitle], points: [] };
-          currentSection.subsections.push(currentSubsection);
+      const canonicalTitle = HG_SECTION_TITLES[detectedNumeral].toLowerCase();
+      const isJustTheTitle =
+        contentAfterTitle.length === 0 ||
+        contentAfterTitle.toLowerCase() === canonicalTitle;
+      if (contentAfterTitle && !isJustTheTitle) {
+        // This is genuine intro content before any 'A.' subsections,
+        // distinct from the section's own heading text.
+        currentSubsection = {
+          label: "intro",
+          content: [contentAfterTitle],
+          points: [],
+        };
+        currentSection.subsections.push(currentSubsection);
       }
       continue;
     }
@@ -410,7 +484,7 @@ function buildFallbackHitchhikersGuide(
         points: [],
       };
       const content = alphaMatch[2].trim();
-      if(content) {
+      if (content) {
         currentSubsection.content.push(content);
       }
       currentSection.subsections.push(currentSubsection);
@@ -422,17 +496,17 @@ function buildFallbackHitchhikersGuide(
       currentSubsection.points.push(numericMatch[1].trim());
       continue;
     }
-    
+
     // This is a continuation of the previous content (paragraph or intro)
     if (trimmed) {
-        if (currentSubsection) {
-            // Add to the content of the current subsection
-            currentSubsection.content.push(trimmed);
-        } else {
-            // Content directly under a roman numeral, create an implicit subsection
-            currentSubsection = { label: 'intro', content: [trimmed], points: [] };
-            currentSection.subsections.push(currentSubsection);
-        }
+      if (currentSubsection) {
+        // Add to the content of the current subsection
+        currentSubsection.content.push(trimmed);
+      } else {
+        // Content directly under a roman numeral, create an implicit subsection
+        currentSubsection = { label: "intro", content: [trimmed], points: [] };
+        currentSection.subsections.push(currentSubsection);
+      }
     }
   }
 
@@ -482,21 +556,57 @@ export async function parseHitchhikersGuide(
       ambiguousBlocks,
     };
   }
-  
+
   // Per spec, use deterministic parsing first.
   const document = buildFallbackHitchhikersGuide(text, metadata);
 
-  // Future enhancement: Use AI to classify ambiguous blocks found by the deterministic parser.
-  if (isAIAvailable()) {
-    // For example:
-    // if (ambiguousBlocks.length > 0) {
-    //   const corrections = await aiCorrectAmbiguities(ambiguousBlocks);
-    //   applyCorrections(document, corrections);
-    // }
-    warnings.push({
-      code: 'HG_AI_NOTE',
-      message: 'AI processing is available but not yet implemented for ambiguity resolution.'
-    });
+  // Did the deterministic parser find real A/B/C subsections or 1/2/3
+  // supporting points anywhere, or did every section have to fall back to
+  // a single flat "intro" paragraph? The latter means the source text
+  // didn't use explicit outline markers, and the structure needs AI help
+  // to recover rather than being silently flattened.
+  const hasExplicitStructure = (document.challenges || []).some((challenge) =>
+    Object.values(challenge.sections).some(
+      (section) =>
+        !!section &&
+        section.subsections.some(
+          (sub) => sub.label !== "intro" || sub.points.length > 0,
+        ),
+    ),
+  );
+
+  if (!hasExplicitStructure) {
+    if (isAIAvailable()) {
+      try {
+        const aiDocument = (await aiEnhanceHitchhikersGuide(
+          text,
+          metadata,
+        )) as Partial<HitchhikersGuide>;
+        warnings.push({
+          code: "HG_AI_APPLIED",
+          message:
+            "No explicit A/B/C or numbered-point structure was found in the source text, so AI-assisted classification was used to reconstruct it. Please review each section carefully before approving.",
+        });
+        return {
+          document: aiDocument,
+          errors,
+          warnings,
+          ambiguousBlocks,
+        };
+      } catch {
+        warnings.push({
+          code: "HG_AI_FAILED",
+          message:
+            "AI-assisted classification failed, so the deterministic parse was used instead. Sections may be missing A/B/C subsections or numbered points — please review and add structure manually.",
+        });
+      }
+    } else {
+      warnings.push({
+        code: "HG_NO_STRUCTURE",
+        message:
+          "No explicit A/B/C subsection or numbered-point structure was found in the source text, and AI-assisted classification is not configured. Sections were imported as plain paragraphs — please review and add structure manually.",
+      });
+    }
   }
 
   return { document, errors, warnings, ambiguousBlocks };
