@@ -108,22 +108,25 @@ export const HitchhikersGuideTemplate: React.FC<TemplateProps> = ({
                 margin: -4px 0 10px 0;
                 page-break-after: avoid;
             }
+            /* Formal MLA-style outline hierarchy:
+                 I.   (flush left)
+                    A.   (indented one level, 0.4in)
+                       1.   (indented one more level, 0.8in)
+               Each level uses a fixed-width label column so labels of
+               different lengths (I. vs VIII.) still line up, and wrapped
+               text hangs indented under the text, not the label. */
             .romanSection {
                 margin-bottom: 16px;
                 page-break-inside: auto;
             }
             .romanHeading {
                 display: flex;
-                margin-left: 24px;
-                margin-bottom: 6px;
+                margin: 0 0 6px 0;
                 page-break-after: avoid;
             }
             .romanLabel {
-                width: 34px;
+                width: 0.4in;
                 flex-shrink: 0;
-                text-align: right;
-                padding-right: 8px;
-                box-sizing: border-box;
                 font-size: 11.5pt;
                 font-weight: 600;
             }
@@ -134,12 +137,12 @@ export const HitchhikersGuideTemplate: React.FC<TemplateProps> = ({
             }
             .alphaSection {
                 display: flex;
-                margin-left: 68px;
+                margin-left: 0.4in;
                 margin-bottom: 6px;
                 page-break-inside: avoid;
             }
             .alphaLabel {
-                width: 22px;
+                width: 0.35in;
                 flex-shrink: 0;
             }
             .alphaContent {
@@ -149,8 +152,9 @@ export const HitchhikersGuideTemplate: React.FC<TemplateProps> = ({
                 margin-top: 0;
             }
             .numericList {
-                margin: 4px 0 0 20px;
-                padding-left: 20px;
+                list-style-position: outside;
+                margin: 4px 0 0 0.4in;
+                padding-left: 0.35in;
             }
           `}
         </style>
