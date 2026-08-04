@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("pdfjs-dist", () => ({
+vi.mock("pdfjs-dist/legacy/build/pdf.mjs", () => ({
   getDocument: vi.fn(),
+  GlobalWorkerOptions: { workerSrc: "" },
 }));
 
 import { extractFileText } from "../automizer/docx-extractor";
-import { getDocument } from "pdfjs-dist";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 const mockedGetDocument = vi.mocked(getDocument);
 

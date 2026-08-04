@@ -425,7 +425,13 @@ function buildFallbackHitchhikersGuide(
     if (romanMatch) {
       detectedNumeral = romanMatch[1] as HGSectionNumber;
     } else if (arabicMatch) {
-      detectedNumeral = arabicToRomanMap[arabicMatch[1]];
+      const numeral = arabicToRomanMap[arabicMatch[1]];
+      const title = HG_SECTION_TITLES[numeral].toLowerCase();
+      const content = trimmed.replace(/^([1-9])(?:\.|:|\s|-)\s*/, "").trim().toLowerCase();
+      const firstWordsOfTitle = title.split(" ").slice(0, 2).join(" ");
+      if (content.includes(title) || content.includes(firstWordsOfTitle) || !currentSubsection) {
+        detectedNumeral = numeral;
+      }
     } else {
       for (const [title, numeral] of titleToNumeral.entries()) {
         if (lower.includes(title)) {
