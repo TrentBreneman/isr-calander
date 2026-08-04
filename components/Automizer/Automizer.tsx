@@ -603,9 +603,7 @@ export default function Automizer({ onClose }: AutomizerProps) {
                   detected from your raw source material. The automizer will
                   turn this into a finished work product you can review and
                   export as PDF or DOCX.
-                  {process.env.NEXT_PUBLIC_GEMINI_API_KEY
-                    ? " AI-assisted parsing is active for ambiguous sections."
-                    : ""}
+                  {" AI-assisted parsing is active for ambiguous sections."}
                 </span>
               </div>
             )}

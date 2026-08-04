@@ -1,9 +1,9 @@
 // lib/automizer/ai-parser.ts
 import { DocumentMetadata, AutomizerDocument } from "./types";
-import { callGemini } from "./ai-client";
+import { callOpenAI } from "./ai-client";
 
 export function isAIAvailable(): boolean {
-  return Boolean(process.env.GEMINI_API_KEY);
+  return Boolean(process.env.OPENAI_API_KEY);
 }
 
 export async function aiEnhanceGauntlet(
@@ -19,9 +19,9 @@ Parse the following unformatted text into a strict JSON object that conforms to 
   
   Raw Text to parse:
   ${text}`;
-  const rawJson = await callGemini(systemPrompt, userPrompt);
+  const rawJson = await callOpenAI(systemPrompt, userPrompt);
   if (!rawJson) {
-    throw new Error("Failed to receive response from Gemini AI.");
+    throw new Error("Failed to receive response from OpenAI.");
   }
 
   const cleanedJson = rawJson.replace(/^```json\s*|\s*```$/g, "").trim();
@@ -59,14 +59,14 @@ The JSON must follow this exact structural shape:
 Return ONLY valid JSON. No markdown ticks, no extra text.`;
 
   const userPrompt = `Metadata to apply: Title: ${
-    metadata.title || "Hitchhiker’s Guide"
+    metadata.title || "Hitchhiker's Guide"
   }, Author: ${metadata.author || "iSolvRisk Inc."}.
   
   Raw Text to parse:
   ${text}`;
-  const rawJson = await callGemini(systemPrompt, userPrompt);
+  const rawJson = await callOpenAI(systemPrompt, userPrompt);
   if (!rawJson) {
-    throw new Error("Failed to receive response from Gemini AI.");
+    throw new Error("Failed to receive response from OpenAI.");
   }
 
   const cleanedJson = rawJson.replace(/^```json\s*|\s*```$/g, "").trim();

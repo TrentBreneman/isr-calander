@@ -1,29 +1,29 @@
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 
-export async function callGemini(
+export async function callOpenAI(
   systemPrompt: string,
   userPrompt: string,
 ): Promise<string | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return null;
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const client = new OpenAI({ apiKey });
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: userPrompt,
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: "application/json",
-      },
+    const response = await client.chat.completions.create({
+      model: "gpt-4o",
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
     });
 
-    return response.text ?? null;
+    return response.choices[0]?.message?.content ?? null;
   } catch (error) {
-    console.error("[Gemini API Error]:", error);
+    console.error("[OpenAI API Error]:", error);
     return null;
   }
 }
