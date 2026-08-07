@@ -1,10 +1,11 @@
 import OpenAI from "openai";
+import { API_KEY } from "./config";
 
 export async function callOpenAI(
   systemPrompt: string,
   userPrompt: string,
 ): Promise<string | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = API_KEY;
   if (!apiKey) {
     return null;
   }
