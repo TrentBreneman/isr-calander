@@ -358,11 +358,18 @@ Possible source variations:
   ${text}`;
   const rawJson = await callOpenAI(systemPrompt, userPrompt);
   if (!rawJson) {
+    console.error("Failed to receive response from OpenAI in ai-parser.");
     throw new Error("Failed to receive response from OpenAI.");
   }
+  console.log("Raw JSON response from AI:", rawJson);
 
-  const cleanedJson = rawJson.replace(/^```json\s*|\s*```$/g, "").trim();
-  return JSON.parse(cleanedJson) as AutomizerDocument;
+  try {
+    const cleanedJson = rawJson.replace(/^```json\s*|\s*```$/g, "").trim();
+    return JSON.parse(cleanedJson) as AutomizerDocument;
+  } catch (error) {
+    console.error("Error parsing JSON response from AI:", error);
+    throw error;
+  }
 }
 
 export async function aiEnhanceHitchhikersGuide(
@@ -680,10 +687,17 @@ Rules:
   ${text}`;
   const rawJson = await callOpenAI(systemPrompt, userPrompt);
   if (!rawJson) {
+    console.error("Failed to receive response from OpenAI in ai-parser.");
     throw new Error("Failed to receive response from OpenAI.");
   }
+  console.log("Raw JSON response from AI:", rawJson);
 
-  const cleanedJson = rawJson.replace(/^```json\s*|\s*```$/g, "").trim();
-  return JSON.parse(cleanedJson) as AutomizerDocument;
+  try {
+    const cleanedJson = rawJson.replace(/^```json\s*|\s*```$/g, "").trim();
+    return JSON.parse(cleanedJson) as AutomizerDocument;
+  } catch (error) {
+    console.error("Error parsing JSON response from AI:", error);
+    throw error;
+  }
 }
 

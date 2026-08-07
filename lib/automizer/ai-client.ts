@@ -7,8 +7,10 @@ export async function callOpenAI(
 ): Promise<string | null> {
   const apiKey = API_KEY;
   if (!apiKey) {
+    console.error("OpenAI API key not found. Make sure OPENAI_API_KEY environment variable is set.");
     return null;
   }
+  console.log("OpenAI API key found, proceeding with API call.");
 
   const client = new OpenAI({ apiKey });
 
@@ -22,9 +24,10 @@ export async function callOpenAI(
       ],
     });
 
-    return response.choices[0]?.message?.content ?? null;
+    console.log("Successfully received response from OpenAI API.");
+    return response.choices[0].message.content;
   } catch (error) {
-    console.error("[OpenAI API Error]:", error);
-    return null;
+    console.error("Error calling OpenAI API:", error);
+    throw error; // Re-throw the error to be caught by the caller
   }
 }
